@@ -37,6 +37,18 @@ class Meeting extends Fixture {
     this.exceptionsList = const {},
   });
 
+  Meeting copy()
+  => Meeting(
+      member: member,
+      product: product,
+      date: date,
+      from: from,
+      to: to,
+      recurrenceId: recurrenceId,
+      recurrenceRule: recurrenceRule,
+      exceptionsList: exceptionsList,
+  );
+
   factory Meeting.make({
       String? id,
       required Map<String, dynamic> data,
@@ -100,11 +112,13 @@ class Meeting extends Fixture {
       "id": id,
       "product": product,
       "member": member,
+    },
+    ...super.get(),
+    ...{
       "recurrenceId": recurrenceId,
       "recurrenceRule": recurrenceRule,
       "exceptionsList": exceptionsList,
     },
-    ...super.get()
   };
 
   Meeting set(Map<String, dynamic> data) {
@@ -119,6 +133,7 @@ class Meeting extends Fixture {
   }
 
   Meeting setRecurrence(Map<String, dynamic> data) {
+    date += data["date"].weekday - date.weekday;
     from = data["from"];
     to = data["to"];
     recurrenceRule = data["recurrenceRule"] ?? recurrenceRule;
@@ -129,15 +144,14 @@ class Meeting extends Fixture {
     return this;
   }
 
-  Date? get recurrenceUntil
-      {final res = (recurrenceRule != null) ? Date.fromISOString(
+  int get duration => to % from.toDateTime();
+
+  Date? get recurrenceUntil => (recurrenceRule != null)
+      ? Date.fromISOString(
           RegExp(r'UNTIL=(\d{8}T\d{6}Z?)').stringMatch(
               recurrenceRule!
           )!.substring(6)
       ) : null;
-        print(res);
-        return res;
-}
 
   set recurrenceUntil(DateTime datetime) {
     exceptionsList.removeWhere((d) => d > datetime);
@@ -153,11 +167,6 @@ class Meeting extends Fixture {
 
   void exceptionRemove(Date date) {
     exceptionsList.remove(date);
-  }
-
-  void update(Meeting meeting, delta) {
-    from = meeting.from;
-    to = meeting.to;
   }
 
   bool get isSignificant {
@@ -184,6 +193,14 @@ class Meeting extends Fixture {
         && meeting.from == from
         && meeting.to == to
     );
+  }
 
+  bool? hasDeviation(Meeting meeting) {
+    if (!isRecurrence || (meeting.recurrenceId != id)) return null;
+    return (
+        (meeting.date % date) % 7 == 0
+            && meeting.from == from
+            && meeting.to == to
+    );
   }
 }

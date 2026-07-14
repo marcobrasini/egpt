@@ -1,5 +1,3 @@
-import 'package:egpt/services/supabase_service.dart';
-import 'package:egpt/utils/datetime.dart';
 import 'package:flutter/material.dart';
 //downloaded
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -10,7 +8,9 @@ import 'package:egpt/admin/schedule/meetingType_widget.dart';
 import 'package:egpt/admin/source_admin.dart';
 //models
 import 'package:egpt/models/meeting.dart';
+import 'package:egpt/models/fixture.dart';
 //utils
+import 'package:egpt/utils/datetime.dart';
 
 
 class CalendarWidget extends StatefulWidget {
@@ -23,6 +23,7 @@ class CalendarWidget extends StatefulWidget {
 
 class _CalendarWidgetState extends State<CalendarWidget> {
   static final admin = AdminSource();
+  Fixture? initFixture;
 
   Future<MeetingType?> confirm(
       BuildContext context,
@@ -251,28 +252,20 @@ class _CalendarWidgetState extends State<CalendarWidget> {
       case MeetingType.occurrence:
         return await admin.removeMeeting(meeting);
       case MeetingType.recurrence:
-        final recurrence = admin.schedule.meeting(
-            meeting.recurrenceId!
-        );
+        final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
         return await admin.removeMeeting(recurrence);
       case MeetingType.exception:
-        final recurrence = admin.schedule.meeting(
-            meeting.recurrenceId!
-        );
+        final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
         recurrence.exceptionInsert(meeting.date);
-        if (recurrence.isSignificant) {
-          return await admin.modifyMeeting(recurrence);
-        }
-        return await admin.removeMeeting(recurrence);
+        return (recurrence.isSignificant)
+            ? await admin.modifyMeeting(recurrence)
+            : await admin.removeMeeting(recurrence);
       case MeetingType.deviation:
-        final recurrence = admin.schedule.meeting(
-            meeting.recurrenceId!
-        );
+        final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
         recurrence.recurrenceUntil = meeting.date;
-        if (recurrence.isSignificant) {
-          return await admin.modifyMeeting(recurrence);
-        }
-        return await admin.removeMeeting(recurrence);
+        return (recurrence.isSignificant)
+            ? await admin.modifyMeeting(recurrence)
+            : await admin.removeMeeting(recurrence);
     }
   }
 
@@ -293,24 +286,31 @@ class _CalendarWidgetState extends State<CalendarWidget> {
           if (recurrence.hasInstance(meeting) ?? false) {
             recurrence.exceptionRemove(meeting.date);
             await admin.modifyMeeting(recurrence);
-            return admin.removeMeeting(meeting);
+            return await admin.removeMeeting(meeting);
           }
         }
         return await admin.modifyMeeting(meeting);
       case MeetingType.recurrence:
+        if (meeting.isDeviation) {}
         final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
         recurrence.setRecurrence(meeting.get());
         return await admin.modifyMeeting(recurrence);
       case MeetingType.exception:
         final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
-        recurrence.exceptionInsert(meeting.date);
+        final difference = meeting.date.weekday - recurrence.date.weekday;
+        recurrence.exceptionInsert(meeting.date - difference);
         meeting.recurrenceRule = null;
-        await admin.modifyMeeting(recurrence);
+        (recurrence.isSignificant)
+            ? await admin.modifyMeeting(recurrence)
+            : await admin.removeMeeting(recurrence);
         return await admin.insertMeeting(meeting);
       case MeetingType.deviation:
         final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
-        recurrence.recurrenceUntil = meeting.date;
-        await admin.modifyMeeting(recurrence);
+        recurrence.recurrenceUntil = meeting.date - (meeting.date.weekday-1);
+        meeting.recurrenceId = null;
+        (recurrence.isSignificant)
+            ? await admin.modifyMeeting(recurrence)
+            : await admin.removeMeeting(recurrence);
         return await admin.insertMeeting(meeting);
     }
   }
@@ -338,13 +338,62 @@ class _CalendarWidgetState extends State<CalendarWidget> {
           newMeeting(context, details.date!);
         } else {
           final appointment = details.appointments!.single;
-          editMeeting(context, appointment);
+          initFixture = Fixture.make(data: appointment.get());
+          if (appointment.isRecurrence) {
+            final meeting = Meeting.instance(
+                appointment,
+                Fixture.make(data: {
+                  "date": Date.fromDateTime(details.date!),
+                  "from": appointment.from,
+                  "to": appointment.to,
+                })
+            );
+            editMeeting(context, meeting);
+          } else {
+            editMeeting(context, appointment);
+          }
+          initFixture = null;
         }
       },
-      // TODO implement drag and drop functionality
+      allowDragAndDrop: true,
+      onDragStart: onDragStart,
+      onDragEnd: onDragEnd,
+      dragAndDropSettings: DragAndDropSettings(
+        allowScroll: true,
+        allowNavigation: false,
+        showTimeIndicator: true,
+        indicatorTimeFormat: "hh:mm",
+      ),
     );
   }
 
+  void onDragStart(AppointmentDragStartDetails details) {
+    dynamic appointment = details.appointment!;
+    initFixture = Fixture.make(data: appointment.get());
+  }
+
+  void onDragEnd(AppointmentDragEndDetails details) async {
+    dynamic appointment = details.appointment!;
+    final dropFixture = Fixture.make(data: {
+      "date": details.droppingTime!.date,
+      "from": details.droppingTime!.time.round(15),
+      "to": details.droppingTime!.time.round(15) + appointment.duration,
+    });
+    // admin.schedule.meetings.forEach((m) => print(m.get()));
+    if (appointment.isRecurrence) {
+      if (admin.schedule.meetings.last.id == appointment.id) {
+        admin.schedule.meetings.removeLast();
+        admin.schedule.meeting(appointment.id).set(initFixture!.get());
+        final meeting = Meeting.instance(appointment, dropFixture);
+        await setMeeting(context, meeting);
+      }
+    } else {
+      final meeting = appointment.set(dropFixture.get());
+      print(meeting.get());
+      await setMeeting(context, meeting);
+    }
+    initFixture = null;
+  }
 }
 
 

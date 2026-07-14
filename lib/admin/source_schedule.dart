@@ -1,7 +1,6 @@
-import 'package:egpt/models/fixture.dart';
 import 'package:flutter/material.dart';
 //downloaded
-import 'package:syncfusion_flutter_calendar/calendar.dart';
+import 'z
 // models
 import 'package:egpt/models/meeting.dart';
 // extra
@@ -52,20 +51,25 @@ class ScheduleSource extends CalendarDataSource<Meeting> {
   Meeting convertAppointmentToObject(
       Meeting meeting,
       Appointment appointment
-  ) => (meeting.isRecurrence)
-          ? Meeting.instance(
-          meeting,
-          Fixture.make(data: {
-            "date": appointment.startTime.date,
-            "from": appointment.startTime.time,
-            "to": appointment.endTime.time,
-          })
-      )
-          : meeting.set({
-        "date": appointment.startTime.date,
-        "from": appointment.startTime.time,
-        "to": appointment.endTime.time,
-      });
+  ) => meeting.set({
+     if(!meeting.isRecurrence) "date": appointment.startTime.date,
+     "from": appointment.startTime.time,
+     "to": appointment.endTime.time,
+   });
+      // (meeting.isRecurrence)
+      //     ? Meeting.instance(
+      //     meeting,
+      //     Fixture.make(data: {
+      //       "date": appointment.startTime.date,
+      //       "from": appointment.startTime.time,
+      //       "to": appointment.endTime.time,
+      //     })
+      // )
+      //     : meeting.set({
+      //   "date": appointment.startTime.date,
+      //   "from": appointment.startTime.time,
+      //   "to": appointment.endTime.time,
+      // });
 
   Future<Meeting> insertMeeting(Meeting meeting) async {
     meetings.add(meeting);

@@ -7,10 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:egpt/services/supabase_service.dart';
 
+class AdminPage extends StatefulWidget {
+  const AdminPage({super.key});
 
-class AdminPage extends StatelessWidget {
-  AdminPage({super.key});
+  @override
+  State<AdminPage> createState() => _AdminPageState();
+}
 
+class _AdminPageState extends State<AdminPage> {
   final admin = AdminSource();
 
   void _logout(BuildContext context) async {
@@ -60,6 +64,12 @@ class AdminPage extends StatelessWidget {
       ],
     ),
   );
+
+  @override
+  void initState() {
+    admin.build();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
