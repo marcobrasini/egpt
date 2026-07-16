@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-// downloaded
-import 'package:percent_indicator/circular_percent_indicator.dart';
-// models
 import 'package:egpt/models/product.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
 
 
 class ProductTile extends StatelessWidget {

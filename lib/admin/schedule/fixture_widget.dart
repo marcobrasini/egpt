@@ -1,24 +1,19 @@
-//flutter
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-//downloaded
+import 'package:calendar/calendar.dart';
+import 'package:egpt/models/fixture.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
-//models
-import 'package:egpt/models/fixture.dart';
-//widgets
-//extras
-import 'package:egpt/utils/datetime.dart';
 
 
 class FixtureWidget extends StatefulWidget {
   final Fixture? fixture;
   final bool enabled;
-  final bool fixDate;
+  // final bool fixDate;
 
   const FixtureWidget(this.fixture, {
     this.enabled = true,
-    this.fixDate = false,
+    // this.fixDate = false,
     super.key
   });
 
@@ -33,7 +28,10 @@ class FixtureWidgetState extends State<FixtureWidget> {
     final form = _fixtureForm.currentState;
     if (form?.saveAndValidate() ?? false) {
       final data = Map<String, dynamic>.from(form!.value);
-      return data;
+      return {
+        "start": (data["date"] as Date) & (data["from"] as Time),
+        "stop": (data["date"] as Date) & (data["to"] as Time),
+      };
     }
     return null;
   }
@@ -51,9 +49,9 @@ class FixtureWidgetState extends State<FixtureWidget> {
       labelText: "Data",
       icon: Icon(Icons.calendar_month),
     ),
-    enabled: widget.enabled && !widget.fixDate,
+    enabled: widget.enabled,// && !widget.fixDate,
     initialValue: widget.fixture?.date,
-    valueTransformer: (value) => Date.fromDateTime(value!),
+    valueTransformer: (value) => value!.date,
     validator: FormBuilderValidators.compose([
       FormBuilderValidators.required(),
       FormBuilderValidators.dateTime(),
@@ -68,8 +66,8 @@ class FixtureWidgetState extends State<FixtureWidget> {
       icon: Icon(Icons.schedule),
     ),
     enabled: widget.enabled,
-    initialValue: widget.fixture?.from.toDateTime(),
-    valueTransformer: (value) => Time.fromDateTime(value!),
+    initialValue: widget.fixture?.from,
+    valueTransformer: (value) => value!.time,
     validator: FormBuilderValidators.compose([
       FormBuilderValidators.required(),
       FormBuilderValidators.dateTime(),
@@ -92,8 +90,8 @@ class FixtureWidgetState extends State<FixtureWidget> {
       icon: Icon(Icons.schedule),
     ),
     enabled: widget.enabled,
-    initialValue: widget.fixture?.to.toDateTime(),
-    valueTransformer: (value) => Time.fromDateTime(value!),
+    initialValue: widget.fixture?.to,
+    valueTransformer: (value) => value!.time,
     validator: FormBuilderValidators.compose([
       FormBuilderValidators.required(),
       FormBuilderValidators.dateTime(),

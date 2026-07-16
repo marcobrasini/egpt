@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-// download
+import 'package:calendar/calendar.dart';
+import 'package:egpt/models/member.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:form_builder_image_picker/form_builder_image_picker.dart';
 import 'package:form_builder_extra_fields/form_builder_extra_fields.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-// models
-import 'package:egpt/models/member.dart';
-// utils
-import 'package:egpt/utils/datetime.dart';
 
 
 class MemberWidget extends StatefulWidget {
@@ -152,13 +149,11 @@ class MemberWidgetState extends State<MemberWidget> {
     ]),
     onChanged: (value) {
       if (value == null) return;
-      final name = _memberKey.currentState!.fields["name"]?.value;
       final lastName = _memberKey.currentState!.fields["lastName"]?.value;
       final username = [value, lastName].where(
               (e) => e != null && e.isNotEmpty
       ).join(" ");
-      _memberKey.currentState!.fields["name"]!
-          .didChange(username);
+      _memberKey.currentState!.fields["name"]!.didChange(username);
       setState(() {
         _editable = username.isNotEmpty;
       });
@@ -177,13 +172,11 @@ class MemberWidgetState extends State<MemberWidget> {
     ]),
     onChanged: (value) {
       if (value == null) return;
-      final name = _memberKey.currentState!.fields["name"]?.value;
       final firstName = _memberKey.currentState!.fields["firstName"]?.value;
       final username = [firstName, value].where(
               (e) => e != null && e.isNotEmpty
       ).join(" ");
-      _memberKey.currentState!.fields["name"]!
-          .didChange(username);
+      _memberKey.currentState!.fields["name"]!.didChange(username);
       setState(() {
         _editable = username.isNotEmpty;
       });
@@ -204,7 +197,7 @@ class MemberWidgetState extends State<MemberWidget> {
       FormBuilderValidators.required(),
       FormBuilderValidators.dateTime(),
     ]),
-    valueTransformer: (value) => Date.fromDateTime(value!),
+    valueTransformer: (value) => value!.date,
   );
 
   Widget emailForm() => FormBuilderTextField(

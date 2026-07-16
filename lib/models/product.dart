@@ -1,6 +1,6 @@
 import 'dart:math';
+import 'package:calendar/calendar.dart';
 import 'package:flutter/material.dart';
-import 'package:egpt/utils/datetime.dart';
 
 
 class Product {
@@ -60,7 +60,7 @@ class Product {
   int get duration => stop % start;
   int get pastDays => min(max(Date.now() % start, 0), duration);
   int get leftDays => min(max(stop % Date.now(), 0), duration);
-  String get recap => "$summary (${done}(${redo})/${length})";
+  String get recap => "$summary ($done($redo)/$length)";
 
   bool isComplete() => done >= length;
   bool isStarted() => start <= Date.now();

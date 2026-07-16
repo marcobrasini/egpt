@@ -1,12 +1,7 @@
-import 'package:egpt/admin/source_admin.dart';
 import 'package:flutter/material.dart';
-// downloaded
 import 'package:provider/provider.dart';
-// admin
-import 'package:egpt/admin/source_admin.dart';
-// models
 import 'package:egpt/models/member.dart';
-// widgets
+import 'package:egpt/admin/source_admin.dart';
 import 'package:egpt/admin/register/member_tile.dart';
 import 'package:egpt/admin/register/member_page.dart';
 

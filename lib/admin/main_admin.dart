@@ -1,11 +1,9 @@
 import 'package:egpt/admin/admin_register.dart';
 import 'package:egpt/admin/admin_schedule.dart';
 import 'package:egpt/admin/source_admin.dart';
-import 'package:egpt/admin/source_register.dart';
-import 'package:egpt/admin/source_schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:egpt/services/supabase_service.dart';
+
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -24,9 +22,10 @@ class _AdminPageState extends State<AdminPage> {
         "/", (route) => false,
       );
     }
+    admin.reset();
   }
 
-  Widget mainDrawer(context) => Drawer(
+  Widget mainDrawer(BuildContext context) => Drawer(
     child: ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -73,16 +72,12 @@ class _AdminPageState extends State<AdminPage> {
 
   @override
   Widget build(BuildContext context) {
-    admin.build();
-
     return DefaultTabController(
       length: 3,
       initialIndex: 1,
       child: MultiProvider(
         providers: [
-          ChangeNotifierProvider<AdminSource>.value(
-              value: admin
-          ),
+          ChangeNotifierProvider<AdminSource>.value(value: admin),
         ],
         child: Scaffold(
           appBar: AppBar(

@@ -1,12 +1,25 @@
 // import 'dart:ui';
-import 'package:egpt/models/meeting.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:calendar/calendar.dart';
+import 'package:egpt/models/meeting.dart';
 import 'package:egpt/models/member.dart';
 import 'package:egpt/models/product.dart';
-import 'package:egpt/utils/datetime.dart';
 import 'package:egpt/utils/color.dart';
 
 typedef DataMap = Map<String, dynamic>;
+
+
+enum AuthRole {
+  admin,
+  user;
+
+  static AuthRole? parse(String? value) {
+    for (final role in AuthRole.values) {
+      if (role.name == value) return role;
+    }
+    return null;
+  }
+}
 
 
 class SupabaseService {
@@ -72,97 +85,83 @@ class SupabaseService {
   }
 
   // Database methods
-  static final String _userTable = "users";
-  static final String _userColumn_memberId = "member_id";
-  static final String _userColumn_user_id = "auth_id";
-  //////////////////////////////////////////////////////////////////////////////
-  static final String _memberTable = "members";
-  static final String _memberColumn_id = "id";
-  static final String _memberColumn_name = "name";
-  static final String _memberColumn_firstName = "first_name";
-  static final String _memberColumn_lastName = "last_name";
-  static final String _memberColumn_birth = "birth";
-  static final String _memberColumn_color = "color";
-  static final String _memberColumn_email = "email";
-  static final String _memberColumn_phone = "phone";
-  //static final String _memberColumn_photo = "photo";
+  static final String _memberColumnId = "id";
+  static final String _memberColumnName = "name";
+  static final String _memberColumnFirstName = "first_name";
+  static final String _memberColumnLastName = "last_name";
+  static final String _memberColumnBirth = "birth";
+  static final String _memberColumnColor = "color";
+  static final String _memberColumnEmail = "email";
+  static final String _memberColumnPhone = "phone";
+  //static final String _memberColumnPhoto = "photo";
   //
-  static final String _productTable = "products";
-  static final String _productColumn_id = "id";
-  static final String _productColumn_memberId = "member_id";
-  static final String _productColumn_summary = "summary";
-  static final String _productColumn_length = "length";
-  static final String _productColumn_start = "start";
-  static final String _productColumn_stop = "stop";
+  static final String _productColumnId = "id";
+  static final String _productColumnMemberId = "member_id";
+  static final String _productColumnSummary = "summary";
+  static final String _productColumnLength = "length";
+  static final String _productColumnStart = "start";
+  static final String _productColumnStop = "stop";
 
-  static final String _meetingTable = "products";
-  static final String _meetingColumn_id = "id";
-  static final String _meetingColumn_memberId = "member_id";
-  static final String _meetingColumn_productId = "product_id";
-  static final String _meetingColumn_start = "start";
-  static final String _meetingColumn_stop = "stop";
-  static final String _meetingColumn_recurrenceId = "recurrence_id";
-  static final String _meetingColumn_recurrenceRule = "recurrence_rule";
-  static final String _meetingColumn_exceptionsList = "exceptions_list";
+  static final String _meetingColumnId = "id";
+  static final String _meetingColumnMemberId = "member_id";
+  static final String _meetingColumnProductId = "product_id";
+  static final String _meetingColumnStart = "start";
+  static final String _meetingColumnStop = "stop";
+  static final String _meetingColumnParentId = "recurrence_id";
+  static final String _meetingColumnPatternRule = "recurrence_rule";
 
   DataMap memberToSupabase(Member member) => {
-    _memberColumn_name: member.name,
-    _memberColumn_firstName: member.firstName,
-    _memberColumn_lastName: member.lastName,
-    _memberColumn_birth: member.birth.toString(),
-    _memberColumn_color: member.color.toHexString(),
+    _memberColumnName: member.name,
+    _memberColumnFirstName: member.firstName,
+    _memberColumnLastName: member.lastName,
+    _memberColumnBirth: member.birth.toString(),
+    _memberColumnColor: member.color.toHexString(),
   };
 
   Member supabaseToMember(DataMap row) => Member(
-      id: row[_memberColumn_id],
-      name: row[_memberColumn_name],
-      firstName: row[_memberColumn_firstName],
-      lastName: row[_memberColumn_lastName],
-      birth: Date.fromString(row[_memberColumn_birth]),
-      color: (row[_memberColumn_color] as String).toColor(),
-      email: row[_memberColumn_email],
-      phone: row[_memberColumn_phone],
+      id: row[_memberColumnId],
+      name: row[_memberColumnName],
+      firstName: row[_memberColumnFirstName],
+      lastName: row[_memberColumnLastName],
+      birth: Date.fromString(row[_memberColumnBirth]),
+      color: (row[_memberColumnColor] as String).toColor(),
+      email: row[_memberColumnEmail],
+      phone: row[_memberColumnPhone],
     );
 
   DataMap productToSupabase(Product product) => {
-    _productColumn_memberId: product.memberId,
-    _productColumn_summary: product.summary,
-    _productColumn_length: product.length,
-    _productColumn_start: product.start.toString(),
-    _productColumn_stop: product.stop.toString(),
+    _productColumnMemberId: product.memberId,
+    _productColumnSummary: product.summary,
+    _productColumnLength: product.length,
+    _productColumnStart: product.start.toString(),
+    _productColumnStop: product.stop.toString(),
   };
 
   Product supabaseToProduct(DataMap row) => Product(
-    id: row[_productColumn_id],
-    memberId: row[_productColumn_memberId],
-    summary: row[_productColumn_summary],
-    length: row[_productColumn_length],
-    start: Date.fromString(row[_productColumn_start]),
-    stop: Date.fromString(row[_productColumn_stop]),
+    id: row[_productColumnId],
+    memberId: row[_productColumnMemberId],
+    summary: row[_productColumnSummary],
+    length: row[_productColumnLength],
+    start: Date.fromString(row[_productColumnStart]),
+    stop: Date.fromString(row[_productColumnStop]),
   );
 
   DataMap meetingToSupabase(Meeting meeting) => {
-    _meetingColumn_productId: meeting.product.id,
-    _meetingColumn_start: meeting.start.toString(),
-    _meetingColumn_stop: meeting.stop.toString(),
-    _meetingColumn_recurrenceId: meeting.recurrenceId,
-    _meetingColumn_recurrenceRule: meeting.recurrenceRule,
-    _meetingColumn_exceptionsList: meeting.exceptionsList
-        .map((m) => m.toString()).toList(),
+    _meetingColumnProductId: meeting.product.id,
+    _meetingColumnStart: meeting.start.toString(),
+    _meetingColumnStop: meeting.stop.toString(),
+    _meetingColumnParentId: meeting.parentId,
+    _meetingColumnPatternRule: meeting.patternRule,
   };
 
   Meeting supabaseToMeeting(DataMap row) => Meeting.build(
-      id: row[_meetingColumn_id],
-      memberId: row[_meetingColumn_memberId],
-      productId: row[_meetingColumn_productId],
-      start: DateTime.parse(row[_meetingColumn_start]),
-      stop: DateTime.parse(row[_meetingColumn_stop]),
-      recurrenceId: row[_meetingColumn_recurrenceId],
-      recurrenceRule: row[_meetingColumn_recurrenceRule],
-      exceptionsList: Set<Date>.from(
-          row[_meetingColumn_exceptionsList]?.map(
-              (date) => Date.fromString(date)
-          ) ?? []),
+    id: row[_meetingColumnId],
+    memberId: row[_meetingColumnMemberId],
+    productId: row[_meetingColumnProductId],
+    start: DateTime.parse(row[_meetingColumnStart]),
+    stop: DateTime.parse(row[_meetingColumnStop]),
+    parentId: row[_meetingColumnParentId],
+    patternRule: row[_meetingColumnPatternRule],
   );
 
   Future<List<Member>> buildRegister() async {

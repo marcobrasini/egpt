@@ -1,16 +1,9 @@
 import 'package:flutter/material.dart';
-//downloaded
-import 'package:syncfusion_flutter_calendar/calendar.dart';
-//widgets
-import 'package:egpt/admin/schedule/meeting_widget.dart';
-import 'package:egpt/admin/schedule/meetingType_widget.dart';
-//sources
-import 'package:egpt/admin/source_admin.dart';
-//models
+import 'package:calendar/calendar.dart';
 import 'package:egpt/models/meeting.dart';
-import 'package:egpt/models/fixture.dart';
-//utils
-import 'package:egpt/utils/datetime.dart';
+import 'package:egpt/admin/source_admin.dart';
+import 'package:egpt/admin/schedule/meeting_widget.dart';
+import 'package:egpt/admin/schedule/option_widget.dart';
 
 
 class CalendarWidget extends StatefulWidget {
@@ -21,17 +14,16 @@ class CalendarWidget extends StatefulWidget {
   State<CalendarWidget> createState() => _CalendarWidgetState();
 }
 
-class _CalendarWidgetState extends State<CalendarWidget> {
-  static final admin = AdminSource();
-  Fixture? initFixture;
+class _CalendarWidgetState extends State<CalendarWidget>
+    with AutomaticKeepAliveClientMixin {
+  final admin = AdminSource();
 
-  Future<MeetingType?> confirm(
-      BuildContext context,
-      Meeting meeting,
-      String action,
-      ) async
-  {
-    final typeKey = GlobalKey<MeetingTypeWidgetState>();
+  @override
+  bool get wantKeepAlive => true;
+
+  Future<MeetingType?> confirm(BuildContext context, Meeting meeting, String action) async {
+    final typeKey = GlobalKey<OptionWidgetState>();
+    final lower = action.toLowerCase();
     return await showDialog<MeetingType?>(
       context: context,
       builder: (context) => AlertDialog(
@@ -41,11 +33,11 @@ class _CalendarWidgetState extends State<CalendarWidget> {
             children: [
               if (meeting.isInstance) Column(
                 children: [
-                  Text("Stai ${action.toLowerCase()}ndo un evento ricorrente."
+                  Text("Stai ${lower}ndo un evento ricorrente."
                       "\nApplica le modifiche a:"),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: MeetingTypeWidget(
+                    child: OptionWidget(
                       option: MeetingType.exception,
                       key: typeKey,
                     ),
@@ -61,7 +53,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
                     ),
                     children: [
                       TextSpan(
-                          text: "Vuoi ${action.toLowerCase()}re l'appuntamento\ncon "),
+                          text: "Vuoi ${lower}re l'appuntamento\ncon "),
                       TextSpan(
                         text: meeting.member.name,
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -93,11 +85,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
     );
   }
 
-  Future<Meeting?> makeMeeting(
-      BuildContext context,
-      DateTime datetime
-      ) async
-  {
+  Future<Meeting?> makeMeeting(BuildContext context, DateTime datetime) async {
     final meetingWidgetKey = GlobalKey<MeetingWidgetState>();
     return await showDialog<Meeting?>(
       context: context,
@@ -121,11 +109,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
                 if (data != null) {
                   if (context.mounted) {
                     Navigator.of(context).pop(
-                        await admin.insertMeeting(
-                            Meeting.make(
-                                data: data
-                            )
-                        )
+                        await admin.insertMeeting(Meeting.make(data: data))
                     );
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Salvataggio riuscito.')),
@@ -148,11 +132,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
     );
   }
 
-  Future<Meeting?> editMeeting(
-      BuildContext context,
-      Meeting meeting,
-      ) async
-  {
+  Future<Meeting?> editMeeting(BuildContext context, Meeting meeting) async {
     final meetingWidgetKey = GlobalKey<MeetingWidgetState>();
     return await showDialog<Meeting?>(
         context: context,
@@ -173,7 +153,8 @@ class _CalendarWidgetState extends State<CalendarWidget> {
                 child: const Text("Modifica"),
                 onPressed: () async {
                   final data = meetingWidgetKey.currentState!.data!;
-                  final updated = await setMeeting(context, meeting.set(data));
+                  final fixture = Fixture(start: data["start"], stop: data["stop"]);
+                  final updated = await setMeeting(context, meeting, fixture);
                   Navigator.of(context).pop(updated);
                 },
               ),
@@ -183,97 +164,34 @@ class _CalendarWidgetState extends State<CalendarWidget> {
     );
   }
 
-  Future<Meeting?> newMeeting(
-      BuildContext context,
-      DateTime datetime
-      ) async
-  {
-    final meetingWidgetKey = GlobalKey<MeetingWidgetState>();
-    return await showDialog<Meeting?>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Nuovo meeting"),
-          content: MeetingWidget(null, datetime: datetime, key: meetingWidgetKey),
-          actionsAlignment: MainAxisAlignment.spaceBetween,
-          actions: [
-            TextButton(
-              child: const Text("Annulla"),
-              onPressed: () {
-                Navigator.of(context).pop(null);
-              },
-            ),
-            TextButton(
-              child: const Text("Conferma"),
-              onPressed: () async {
-                // try {
-                  final data = meetingWidgetKey.currentState?.data;
-                  if (data != null) {
-                    if (context.mounted) {
-                      Navigator.of(context).pop(
-                          await admin.insertMeeting(
-                              Meeting.make(
-                                  data: data
-                              )
-                          )
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Salvataggio riuscito.')),
-                      );
-                    }
-                  }
-                // } catch (e) {
-                //   if (context.mounted) {
-                //     Navigator.of(context).pop(null);
-                //     ScaffoldMessenger.of(context).showSnackBar(
-                //       SnackBar(content: Text('Salvataggio fallito: $e')),
-                //     );
-                //   }
-                // }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<Meeting?> delMeeting(
-      BuildContext context,
-      Meeting meeting,
-  ) async
-  {
+  Future<Meeting?> delMeeting(BuildContext context, Meeting meeting) async {
     final option = (meeting.isInstance)
         ? await confirm(context, meeting, "Cancella")
         : MeetingType.occurrence;
     switch (option) {
-      case null:
-        return null;
       case MeetingType.occurrence:
         return await admin.removeMeeting(meeting);
       case MeetingType.recurrence:
-        final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
+        final recurrence = admin.schedule.meeting(meeting.parentId!);
         return await admin.removeMeeting(recurrence);
-      case MeetingType.exception:
-        final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
-        recurrence.exceptionInsert(meeting.date);
-        return (recurrence.isSignificant)
-            ? await admin.modifyMeeting(recurrence)
-            : await admin.removeMeeting(recurrence);
       case MeetingType.deviation:
-        final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
-        recurrence.recurrenceUntil = meeting.date;
+        final recurrence = admin.schedule.meeting(meeting.parentId!);
+        recurrence.patternConclude(meeting.start);
         return (recurrence.isSignificant)
             ? await admin.modifyMeeting(recurrence)
             : await admin.removeMeeting(recurrence);
+      case MeetingType.exception:
+        final recurrence = admin.schedule.meeting(meeting.parentId!);
+        recurrence.exceptionInsert(meeting.start);
+        return (recurrence.isSignificant)
+            ? await admin.modifyMeeting(recurrence)
+            : await admin.removeMeeting(recurrence);
+      default:
+        return null;
     }
   }
 
-  Future<Meeting?> setMeeting(
-      BuildContext context,
-      Meeting meeting
-      ) async
-  {
+  Future<Meeting?> setMeeting(BuildContext context, Meeting meeting, Fixture fixture) async {
     final option = (meeting.isInstance)
         ? await confirm(context, meeting, "Modifica")
         : MeetingType.occurrence;
@@ -282,117 +200,70 @@ class _CalendarWidgetState extends State<CalendarWidget> {
         return null;
       case MeetingType.occurrence:
         if (meeting.isException) {
-          final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
-          if (recurrence.hasInstance(meeting) ?? false) {
-            recurrence.exceptionRemove(meeting.date);
+          final recurrence = admin.schedule.meeting(meeting.parentId!);
+          if (recurrence.hasInstance(meeting, fixture) ?? false) {
+            recurrence.exceptionRemove(fixture.start);
             await admin.modifyMeeting(recurrence);
-            return await admin.removeMeeting(meeting);
+            await admin.removeMeeting(meeting);
+            return meeting.set(fixture.get());
           }
         }
-        return await admin.modifyMeeting(meeting);
+        return await admin.modifyMeeting(meeting.set(fixture.get()));
       case MeetingType.recurrence:
-        if (meeting.isDeviation) {}
-        final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
-        recurrence.setRecurrence(meeting.get());
-        return await admin.modifyMeeting(recurrence);
-      case MeetingType.exception:
-        final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
-        final difference = meeting.date.weekday - recurrence.date.weekday;
-        recurrence.exceptionInsert(meeting.date - difference);
-        meeting.recurrenceRule = null;
-        (recurrence.isSignificant)
-            ? await admin.modifyMeeting(recurrence)
-            : await admin.removeMeeting(recurrence);
-        return await admin.insertMeeting(meeting);
+        final difference = fixture.start.difference(meeting.start);
+        final recurrence = admin.schedule.meeting(meeting.parentId!);
+        if (recurrence.isDeviation) {
+          final parent = admin.schedule.meeting(recurrence.parentId!);
+          if (parent.hasDeviation(recurrence, fixture) ?? false) {
+            parent.patternConclude(recurrence.patternUntil!);
+            await admin.modifyMeeting(parent);
+            await admin.removeMeeting(recurrence);
+            return recurrence.shift(difference);
+          }
+        }
+        return await admin.modifyMeeting(recurrence.shift(difference));
       case MeetingType.deviation:
-        final recurrence = admin.schedule.meeting(meeting.recurrenceId!);
-        recurrence.recurrenceUntil = meeting.date - (meeting.date.weekday-1);
-        meeting.recurrenceId = null;
+        final recurrence = admin.schedule.meeting(meeting.parentId!);
+        final deviation = recurrence.deviation(meeting, fixture);
+        if (deviation == null) return null;
         (recurrence.isSignificant)
             ? await admin.modifyMeeting(recurrence)
             : await admin.removeMeeting(recurrence);
-        return await admin.insertMeeting(meeting);
+        return await admin.insertMeeting(deviation);
+      case MeetingType.exception:
+        final recurrence = admin.schedule.meeting(meeting.parentId!);
+        final exception = recurrence.exception(meeting, fixture);
+        if (exception == null) return null;
+        (recurrence.isSignificant)
+            ? await admin.modifyMeeting(recurrence)
+            : await admin.removeMeeting(recurrence);
+        return await admin.insertMeeting(exception);
+        default:
+          return null;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SfCalendar(
-      view: CalendarView.week,
-      dataSource: admin.schedule,
-      allowedViews: [
-        CalendarView.month,
-        CalendarView.week,
-        CalendarView.day,
-      ],
-      firstDayOfWeek: 1,
-      todayHighlightColor: Colors.red,
-      appointmentTextStyle: TextStyle(
-        color: Colors.white,
-      ),
-      timeSlotViewSettings: TimeSlotViewSettings(
-        timeFormat: 'HH:mm',
-      ),
-      onTap: (CalendarTapDetails details) {
-        if (details.appointments == null) {
-          newMeeting(context, details.date!);
-        } else {
-          final appointment = details.appointments!.single;
-          initFixture = Fixture.make(data: appointment.get());
-          if (appointment.isRecurrence) {
-            final meeting = Meeting.instance(
-                appointment,
-                Fixture.make(data: {
-                  "date": Date.fromDateTime(details.date!),
-                  "from": appointment.from,
-                  "to": appointment.to,
-                })
-            );
-            editMeeting(context, meeting);
-          } else {
-            editMeeting(context, appointment);
-          }
-          initFixture = null;
-        }
+    super.build(context);
+    return Calendar<Meeting>(
+      view: CalendarView.weekly,
+      source: admin.schedule,
+      begHour: 6,
+      endHour: 22,
+      onFrameTap: (datetime) {
+        makeMeeting(context, datetime);
       },
-      allowDragAndDrop: true,
-      onDragStart: onDragStart,
-      onDragEnd: onDragEnd,
-      dragAndDropSettings: DragAndDropSettings(
-        allowScroll: true,
-        allowNavigation: false,
-        showTimeIndicator: true,
-        indicatorTimeFormat: "hh:mm",
-      ),
+      onEventTap: (meeting) {
+        editMeeting(context, meeting);
+      },
+      onEventDragged: (meeting, fixture) {
+        setMeeting(context, meeting, fixture);
+      },
+      onEventResized: (meeting, fixture) {
+        setMeeting(context, meeting, fixture);
+      },
     );
-  }
-
-  void onDragStart(AppointmentDragStartDetails details) {
-    dynamic appointment = details.appointment!;
-    initFixture = Fixture.make(data: appointment.get());
-  }
-
-  void onDragEnd(AppointmentDragEndDetails details) async {
-    dynamic appointment = details.appointment!;
-    final dropFixture = Fixture.make(data: {
-      "date": details.droppingTime!.date,
-      "from": details.droppingTime!.time.round(15),
-      "to": details.droppingTime!.time.round(15) + appointment.duration,
-    });
-    // admin.schedule.meetings.forEach((m) => print(m.get()));
-    if (appointment.isRecurrence) {
-      if (admin.schedule.meetings.last.id == appointment.id) {
-        admin.schedule.meetings.removeLast();
-        admin.schedule.meeting(appointment.id).set(initFixture!.get());
-        final meeting = Meeting.instance(appointment, dropFixture);
-        await setMeeting(context, meeting);
-      }
-    } else {
-      final meeting = appointment.set(dropFixture.get());
-      print(meeting.get());
-      await setMeeting(context, meeting);
-    }
-    initFixture = null;
   }
 }
 

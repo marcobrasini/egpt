@@ -1,19 +1,14 @@
-import 'package:egpt/admin/schedule/recurrence_widget.dart';
 import 'package:flutter/material.dart';
-// downloaded
+import 'package:calendar/calendar.dart';
+import 'package:egpt/models/member.dart';
+import 'package:egpt/models/product.dart';
+import 'package:egpt/models/meeting.dart';
+import 'package:egpt/admin/source_admin.dart';
+import 'package:egpt/admin/schedule/fixture_widget.dart';
+import 'package:egpt/admin/schedule/pattern_widget.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:form_builder_extra_fields/form_builder_extra_fields.dart';
-// sources
-import 'package:egpt/admin/source_admin.dart';
-// models
-import 'package:egpt/models/member.dart';
-import 'package:egpt/models/product.dart';
-import 'package:egpt/models/fixture.dart';
-import 'package:egpt/models/meeting.dart';
-// widgets
-import 'package:egpt/utils/datetime.dart';
-import 'package:egpt/admin/schedule/fixture_widget.dart';
 
 
 class MeetingWidget extends StatefulWidget {
@@ -27,7 +22,7 @@ class MeetingWidget extends StatefulWidget {
     super.key
   });
 
-  bool get isNew => meeting == null;
+  bool get creating => meeting == null;
 
   @override
   State<MeetingWidget> createState() => MeetingWidgetState();
@@ -38,22 +33,27 @@ class MeetingWidgetState extends State<MeetingWidget> {
   static final register = admin.register;
   final _meetingForm = GlobalKey<FormBuilderState>();
   final _fixtureForm = GlobalKey<FixtureWidgetState>();
-  final _repeatForm = GlobalKey<RecurrenceWidgetState>();
+  final _patternForm = GlobalKey<PatternWidgetState>();
   Product? _product;
   Member? _member;
 
   Map<String, dynamic>? get data {
     final meetingForm = _meetingForm.currentState;
     final fixtureForm = _fixtureForm.currentState;
-    final repeatForm = _repeatForm.currentState;
-    if ((meetingForm?.saveAndValidate() ?? false) && fixtureForm != null) {
+    final patternForm = _patternForm.currentState;
+    if ((meetingForm?.saveAndValidate() ?? false)
+        && fixtureForm != null && patternForm != null) {
       final fixture = fixtureForm.data;
-      if (fixture != null) {
+      final pattern = patternForm.data;
+      if (fixture != null && pattern != null) {
         final data = Map<String, dynamic>.from(meetingForm!.value);
         return {
           ...data,
           ...fixture,
-          if (repeatForm != null) "recurrenceRule": repeatForm.recurrenceRule,
+          if (pattern["repeat"]) "pattern": Pattern(
+            type: PatternType.weekly,
+            until: pattern["until"],
+          )
         };
       }
     }
@@ -74,12 +74,12 @@ class MeetingWidgetState extends State<MeetingWidget> {
       labelText: "Membro",
     ),
     initialValue: _member?.name,
-    enabled: widget.enabled && widget.isNew,
+    enabled: widget.enabled && widget.creating,
     suggestionsCallback: (pattern) {
       if (pattern.isNotEmpty) {
-        return register.memberNames.where((name) => name
-            .toLowerCase().contains(pattern.toLowerCase())
-        ).toList(growable: false);
+        return register.memberNames.where(
+            (name) => name.toLowerCase().contains(pattern.toLowerCase()
+        )).toList(growable: false);
       } else {
         return register.memberNames;
       }
@@ -107,18 +107,14 @@ class MeetingWidgetState extends State<MeetingWidget> {
 
   Widget productForm() => FormBuilderDropdown(
     name: "product",
-    items: _member == null
-        ? []
-        : _member!.products.where((product) => product.isValid())
-        .map((product) => DropdownMenuItem<String>(
-      value: product.id,
-      child: Text(product.summary),
-    )).toList(),
-    decoration: const InputDecoration(
-      labelText: "Abbonamento",
-    ),
+    items: _member?.products.where((product) => product.isValid()).map(
+        (product) => DropdownMenuItem<String>(
+          value: product.id,
+          child: Text(product.summary),
+        )).toList() ?? [],
+    decoration: const InputDecoration(labelText: "Abbonamento"),
     initialValue: _product?.id,
-    enabled: widget.enabled && widget.isNew && _member != null,
+    enabled: widget.enabled && widget.creating && _member != null,
     onChanged: (productId) {
       if (productId != null) {
         setState(() {
@@ -136,34 +132,25 @@ class MeetingWidgetState extends State<MeetingWidget> {
 
   Widget fixtureForm() => FixtureWidget(
     (widget.meeting == null)
-        ? (
-        (widget.datetime == null)
-            ? null
-            : Fixture(
-                date: widget.datetime!.date,
-                from: widget.datetime!.time,
-                to: widget.datetime!.add(Duration(hours: 1)).time,
-            )
-        )
-        : Fixture(
-          date: widget.meeting!.date,
-          from: widget.meeting!.from,
-          to: widget.meeting!.to,
+        ? ((widget.datetime == null) ? null : Fixture(
+          start: widget.datetime!,
+          stop: widget.datetime!.add(Duration(hours: 1)),
+        )) : Fixture(
+          start: widget.meeting!.start,
+          stop: widget.meeting!.stop,
         ),
     enabled: widget.enabled && _product != null,
-    fixDate: widget.meeting?.isInstance ?? false,
+    // fixDate: widget.meeting?.isInstance ?? false,
     key: _fixtureForm,
   );
 
-  Widget recurrenceForm() => RecurrenceWidget(
+  Widget patternForm() => PatternWidget(
     _product,
-    widget.meeting?.recurrenceUntil ?? _product?.stop,
-    widget.meeting?.recurrenceRule != null,
-    allow: widget.isNew,
+    widget.meeting?.pattern,
+    allow: widget.creating,
     enabled: widget.enabled && _product != null,
-    key: _repeatForm,
+    key: _patternForm,
   );
-
 
   @override
   Widget build(BuildContext context) {
@@ -175,10 +162,7 @@ class MeetingWidgetState extends State<MeetingWidget> {
           memberForm(),
           productForm(),
           fixtureForm(),
-          if (!(widget.meeting?.isOccurrence ?? false)) Padding(
-            padding: EdgeInsetsGeometry.all(8),
-            child: recurrenceForm()
-          ),
+          if (widget.meeting?.pattern != null || widget.creating) patternForm(),
         ],
       ),
     );

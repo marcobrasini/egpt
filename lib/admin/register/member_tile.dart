@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-// widgets
-import 'package:egpt/admin/register/product_view.dart';
-// models
 import 'package:egpt/models/member.dart';
+import 'package:egpt/admin/register/product_view.dart';
 
 
 class MemberTile extends StatelessWidget {

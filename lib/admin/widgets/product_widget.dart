@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-// downloaded
+import 'package:calendar/calendar.dart';
+import 'package:egpt/models/product.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:numberpicker/numberpicker.dart';
-// models
-import 'package:egpt/models/product.dart';
-// utils
-import 'package:egpt/utils/datetime.dart';
 
 
 class ProductWidget extends StatefulWidget {
   final Product? product;
-  bool enabled;
-  ProductWidget(this.product, {this.enabled = true, super.key});
+  final bool enabled;
+  const ProductWidget(this.product, {this.enabled = true, super.key});
 
   @override
   State<ProductWidget> createState() => ProductWidgetState();
@@ -167,7 +164,7 @@ class ProductWidgetState extends State<ProductWidget> {
                 );
               }
             },
-            valueTransformer: (value) => Date.fromDateTime(value!),
+            valueTransformer: (value) => value!.date,
           ),
           FormBuilderDateTimePicker(
             name: "stop",
@@ -195,7 +192,7 @@ class ProductWidgetState extends State<ProductWidget> {
                 }
               }
             },
-            valueTransformer: (value) => Date.fromDateTime(value!),
+            valueTransformer: (value) => value!.date,
           ),
         ],
       ),

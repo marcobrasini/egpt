@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:egpt/models/meeting.dart';
+import 'package:flutter_form_builder/flutter_form_builder.dart';
 
 
-class MeetingTypeWidget extends StatefulWidget {
+class OptionWidget extends StatefulWidget {
   final MeetingType option;
   final bool enabled;
-  const MeetingTypeWidget({
+  const OptionWidget({
     this.option = MeetingType.exception,
     this.enabled = true,
     super.key,
   });
 
   @override
-  State<MeetingTypeWidget> createState() => MeetingTypeWidgetState();
+  State<OptionWidget> createState() => OptionWidgetState();
 }
 
-class MeetingTypeWidgetState extends State<MeetingTypeWidget> {
+class OptionWidgetState extends State<OptionWidget> {
   final _meetingType = GlobalKey<FormBuilderState>();
   late MeetingType _type;
   MeetingType get option => _type;

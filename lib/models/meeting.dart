@@ -1,68 +1,60 @@
 import 'package:egpt/admin/source_register.dart';
+import 'package:calendar/calendar.dart';
 import 'package:egpt/models/member.dart';
 import 'package:egpt/models/product.dart';
 import 'package:egpt/models/fixture.dart';
-import 'package:egpt/models/register.dart';
-import 'package:egpt/services/supabase_service.dart';
-import 'package:egpt/utils/datetime.dart';
 
 
-enum MeetingType {
-  occurrence,
-  recurrence,
-  deviation,
-  exception,
-}
+typedef MeetingType = EventType;
 
 
-class Meeting extends Fixture {
+class Meeting extends Event {
   static final register = RegisterSource();
 
-  final String? id;
   final Product product;
   final Member member;
-  String? recurrenceId;
-  String? recurrenceRule;
-  final Set<Date> exceptionsList;
+
+  Date get date => start.date;
+  Time get from => start.time;
+  Time get to => stop.time;
+  String? get patternRule => pattern?.toICSString();
+  bool get isRepeating => id != null && pattern != null;
+
+  DateTime? get patternUntil => pattern?.until;
+  void patternConclude(DateTime until) => pattern?.until = until;
+
+  Set<DateTime>? get exceptionsList => pattern?.exceptions;
+  void exceptionInsert(DateTime datetime) => pattern?.exceptions.add(datetime);
+  void exceptionRemove(DateTime datetime) => pattern?.exceptions.remove(datetime);
+  void exceptionShift(Duration duration) {
+    final shifted = pattern!.exceptions.map((e) => e.add(duration)).toSet();
+    pattern!.exceptions = shifted;
+  }
 
   Meeting({
-    this.id,
+    super.id,
     required this.member,
     required this.product,
-    required super.date,
-    required super.from,
-    required super.to,
-    this.recurrenceId,
-    this.recurrenceRule,
-    this.exceptionsList = const {},
-  });
-
-  Meeting copy()
-  => Meeting(
-      member: member,
-      product: product,
-      date: date,
-      from: from,
-      to: to,
-      recurrenceId: recurrenceId,
-      recurrenceRule: recurrenceRule,
-      exceptionsList: exceptionsList,
+    required super.start,
+    required DateTime super.stop,
+    super.pattern,
+    super.parentId,
+  }) : super(
+    subject: member.name,
+    color: member.color,
   );
 
   factory Meeting.make({
       String? id,
       required Map<String, dynamic> data,
-  })
-  => Meeting(
+  }) => Meeting(
       id: id,
-      product: data['product'],
       member: data['member'],
-      date: data['date'],
-      from: data['from'],
-      to: data['to'],
-      recurrenceId: data['recurrenceId'],
-      recurrenceRule: data['recurrenceRule'],
-      exceptionsList: data['exceptionsList'] ?? {},
+      product: data['product'],
+      start: data['start'],
+      stop: data['stop'],
+      pattern: data['pattern'],
+      parentId: data['parentId'],    
   );
 
   factory Meeting.build({
@@ -71,136 +63,106 @@ class Meeting extends Fixture {
     required String productId,
     required DateTime start,
     required DateTime stop,
-    String? recurrenceId,
-    String? recurrenceRule,
-    Set<Date>? exceptionsList,
-  })
-  {
+    String? parentId,
+    String? patternRule,
+  }) {
     final member = register.member(memberId);
     final product = member.products.singleWhere((p) => p.id == productId);
+    final pattern = (patternRule != null)
+        ? Pattern.fromICSString(patternRule)
+        : null;
     return Meeting(
       id: id,
       member: member,
       product: product,
-      date: start.date,
-      from: start.time,
-      to: stop.time,
-      recurrenceId: recurrenceId,
-      recurrenceRule: recurrenceRule,
-      exceptionsList: exceptionsList ?? {},
+      start: start,
+      stop: stop,
+      pattern: pattern,
+      parentId: parentId,
     );
   }
 
-  factory Meeting.instance(
-      Meeting recurrence,
-      Fixture fixture
-      )
-  => Meeting.make(
-      data: {
-        "product": recurrence.product,
-        "member": recurrence.member,
-        "date": fixture.date,
-        "from": fixture.from,
-        "to": fixture.to,
-        "recurrenceId": recurrence.id,
-        "recurrenceRule": recurrence.recurrenceRule,
-      }
-  );
+  Meeting copy() => Meeting.make(id: id, data: get());
 
+  @override
   Map<String, dynamic> get() => {
-    ...{
-      "id": id,
-      "product": product,
-      "member": member,
-    },
     ...super.get(),
-    ...{
-      "recurrenceId": recurrenceId,
-      "recurrenceRule": recurrenceRule,
-      "exceptionsList": exceptionsList,
-    },
+    "product": product,
+    "member": member,
   };
 
+  @override
   Meeting set(Map<String, dynamic> data) {
     super.set(data);
-    recurrenceId = data["recurrenceId"] ?? recurrenceId;
-    recurrenceRule = data["recurrenceRule"] ?? recurrenceRule;
-    if (data["exceptions"] != null) {
-      exceptionsList.clear();
-      exceptionsList.addAll(data["exceptions"]);
-    }
     return this;
   }
 
-  Meeting setRecurrence(Map<String, dynamic> data) {
-    date += data["date"].weekday - date.weekday;
-    from = data["from"];
-    to = data["to"];
-    recurrenceRule = data["recurrenceRule"] ?? recurrenceRule;
-    if (data["exceptions"] != null) {
-      exceptionsList.clear();
-      exceptionsList.addAll(data["exceptions"]);
-    }
-    return this;
-  }
-
-  int get duration => to % from.toDateTime();
-
-  Date? get recurrenceUntil => (recurrenceRule != null)
-      ? Date.fromISOString(
-          RegExp(r'UNTIL=(\d{8}T\d{6}Z?)').stringMatch(
-              recurrenceRule!
-          )!.substring(6)
-      ) : null;
-
-  set recurrenceUntil(DateTime datetime) {
-    exceptionsList.removeWhere((d) => d > datetime);
-    recurrenceRule = recurrenceRule!.replaceAllMapped(
-      RegExp(r'UNTIL=\d{8}T\d{6}Z'),
-      (match) => 'UNTIL=${datetime.toISOFormat()}',
-    );
-  }
-
-  void exceptionInsert(Date date) {
-    exceptionsList.add(date);
-  }
-
-  void exceptionRemove(Date date) {
-    exceptionsList.remove(date);
+  Meeting shift(Duration duration) {
+    if (pattern != null) exceptionShift(duration);
+    return set({
+        "start": start.add(duration),
+        "stop": stop.add(duration),
+    });
   }
 
   bool get isSignificant {
-    if (isRecurrence) {
-      Date instanceDate = date.copy();
-      while (recurrenceUntil! > instanceDate) {
-        if (!exceptionsList.contains(instanceDate)) return true;
-        instanceDate += 7;
+    if (isRepeating) {
+      final iterator = pattern!.iterator(start);
+      while (iterator.moveNext()) {
+        return true;
       }
-      return false;
     }
-    return true;
-  }
-  bool get isOccurrence => recurrenceRule==null || (recurrenceRule?.isEmpty ?? false);
-  bool get isRecurrence => recurrenceRule!=null && recurrenceRule!.isNotEmpty;
-  bool get isException => recurrenceId!=null && recurrenceRule==null;
-  bool get isDeviation => recurrenceId!=null && isRecurrence;
-  bool get isInstance => id == null && recurrenceRule!=null;
-
-  bool? hasInstance(Meeting meeting) {
-    if (!isRecurrence || (meeting.recurrenceId != id)) return null;
-    return (
-        (meeting.date % date) % 7 == 0
-        && meeting.from == from
-        && meeting.to == to
-    );
+    return false;
   }
 
-  bool? hasDeviation(Meeting meeting) {
-    if (!isRecurrence || (meeting.recurrenceId != id)) return null;
-    return (
-        (meeting.date % date) % 7 == 0
-            && meeting.from == from
-            && meeting.to == to
-    );
+  bool? hasInstance(Meeting meeting, [Fixture? fixture]) {
+    if (!isRepeating) return null;
+    return ((fixture?.date ?? meeting.date) % date) % 7 == 0
+        && (fixture?.from ?? meeting.from) == from
+        && (fixture?.to ?? meeting.to) == to
+        && meeting.member == member
+        && meeting.product == product;
   }
+
+  bool? hasDeviation(Meeting meeting, [Fixture? fixture]) {
+    if (!isRepeating && patternUntil == null) return null;
+    final days = patternUntil!.date % start.date;
+    final until = start.date + (days ~/ 7).ceil() * 7;
+    return ((fixture?.date ?? meeting.date) % until) == 0
+        && (fixture?.from ?? meeting.from) == from
+        && (fixture?.to ?? meeting.to) == to
+        && meeting.member == member
+        && meeting.product == product;
+  }
+
+  @override
+  Meeting instance([Map<String, dynamic>? data]) => Meeting.make(data: {
+    ...get(),
+    ...data ?? {},
+    "parentId": id,
+  });
+
+  Meeting? exception(Meeting instance, Fixture fixture) {
+    if (pattern == null) return null;
+    final meeting = Meeting.make(data: {
+        ...instance.get(),
+        ...fixture.get(),
+        "pattern": null,
+      },
+    );
+    exceptionInsert(instance.start);
+    return meeting;
+  }
+
+  Meeting? deviation(Meeting instance, Fixture fixture) {
+    if (pattern == null) return null;
+    final meeting = Meeting.make(data: {
+      ...instance.get(),
+      ...fixture.get(),
+      "pattern": Pattern(type: pattern!.type, until: patternUntil),
+    });
+    patternConclude(instance.start);
+    return meeting;
+  }
+
 }

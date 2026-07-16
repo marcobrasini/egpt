@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-// downloaded
 import 'package:provider/provider.dart';
-// admin
-import 'package:egpt/admin/source_admin.dart';
-// models
 import 'package:egpt/models/member.dart';
 import 'package:egpt/models/product.dart';
-// widgets
+import 'package:egpt/admin/source_admin.dart';
 import 'package:egpt/admin/widgets/product_widget.dart';
 import 'package:egpt/admin/register/product_tile.dart';
 
