@@ -8,41 +8,51 @@ class LoginPage extends StatelessWidget {
 
   final supabase = SupabaseService();
 
-  Future<String?> _login(LoginData data) async {
-    final login = await supabase.signIn(
-        email: data.name,
-        password: data.password
-    );
-    if (login == null) {
-      final role = await supabase.role;
-      switch (role) {
-        case "admin": return null;
-        case "user": return null;
-        default:
-          return role;
-      }
-    }
-    return login;
-  }
+  Future<String?> _login(LoginData data) => supabase.signIn(
+    email: data.name.trim(),
+    password: data.password,
+  );
 
-  Future<String?> _recoverPassword(String name) =>
-      supabase.recoverPassword(email: name);
+  Future<String?> _recoverPassword(String email) =>
+      supabase.recoverPassword(email: email.trim());
 
 
   @override
   Widget build(BuildContext context) {
     return FlutterLogin(
       title: 'EGPT',
+      userType: LoginUserType.email,
       onLogin: _login,
       onRecoverPassword: _recoverPassword,
-      onSubmitAnimationCompleted: () async {
-        final permission = await supabase.privileged;
-        if (permission != null) {
-          (permission)
-              ? Navigator.of(context).pushReplacementNamed("/admin")
-              : Navigator.of(context).pushReplacementNamed("/user");
-        }
-      },
+      navigateBackAfterRecovery: true,
+      onSubmitAnimationCompleted: () =>
+          Navigator.of(context).pushReplacementNamed("/"),
+
+      messages: LoginMessages(
+        userHint: "Email",
+        passwordHint: "Password",
+        forgotPasswordButton: "Password dimenticata?",
+        loginButton: "ACCEDI",
+        recoverPasswordButton: "INVIA",
+        recoverPasswordIntro: "Reimposta la tua password",
+        recoverPasswordDescription:
+        "Inserisci l'email del tuo account: riceverai un link "
+            "per impostare una nuova password.",
+        recoverPasswordSuccess: "Link inviato",
+        goBackButton: "INDIETRO",
+        flushbarTitleError: "Errore",
+        flushbarTitleSuccess: "Fatto",
+      ),
+
+      theme: LoginTheme(
+        primaryColor: Theme.of(context).colorScheme.primary,
+        errorColor: Theme.of(context).colorScheme.error,
+        titleStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 4,
+        ),
+      ),
     );
   }
 }

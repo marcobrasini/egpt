@@ -13,6 +13,7 @@ class _UserPageState extends State<UserPage> {
 
   void _logout(BuildContext context) async {
     await supabase.signOut();
+    if (!mounted) return;
     Navigator.of(context).pushNamedAndRemoveUntil(
       "/",(route) => false,
     );

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:egpt/admin/main_admin.dart';
 import 'package:egpt/user/main_user.dart';
 import 'package:egpt/login.dart';
+import 'package:egpt/auth.dart';
 
 
 void main() async {
@@ -17,9 +18,26 @@ void main() async {
   runApp(EGPTApp());
 }
 
-
-class EGPTApp extends StatelessWidget {
+class EGPTApp extends StatefulWidget {
   const EGPTApp({super.key});
+
+  @override
+  State<EGPTApp> createState() => _EGPTAppState();
+}
+
+class _EGPTAppState extends State<EGPTApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+      if (state.event == AuthChangeEvent.signedOut) {
+        _navigatorKey.currentState
+            ?.pushNamedAndRemoveUntil("/login", (_) => false);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,8 +48,8 @@ class EGPTApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: [
-        const Locale('it', 'IT'), // Italiano
-        const Locale('en', 'US'), // Inglese
+        const Locale('it', 'IT'),
+        const Locale('en', 'US'),
       ],
       locale: const Locale('it', 'IT'),
       theme: ThemeData(
@@ -41,11 +59,13 @@ class EGPTApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
+      navigatorKey: _navigatorKey,
       initialRoute: "/",
       routes: {
-        "/": (context) => LoginPage(),
-        "/user": (context) => UserPage(),
+        "/": (context) => const AuthGate(),
+        "/login": (context) => LoginPage(),
         "/admin": (context) => AdminPage(),
+        "/user": (context) => UserPage(),
       },
     );
   }

@@ -1,4 +1,5 @@
 // import 'dart:ui';
+import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:calendar/calendar.dart';
 import 'package:egpt/models/meeting.dart';
@@ -30,7 +31,6 @@ class SupabaseService {
   factory SupabaseService() => _instance;
 
   static final _client = Supabase.instance.client;
-  static final Map<String, String> _roles = {};
 
   // Authentication methods
   //////////////////////////////////////////////////////////////////////////////
@@ -38,16 +38,17 @@ class SupabaseService {
   User? get user => _client.auth.currentUser;
 
   Future<String?> signIn({
-    required String email,
-    required String password,
-  }) async
-  {
+    required String email, required String password,
+  }) async {
     try {
-      final res = await _client.auth.signInWithPassword(
+      final result = await _client.auth.signInWithPassword(
         email: email,
         password: password,
       );
-      return (res.user == null) ? "Login failed." : null;
+      if (result.user == null) return "Login failed.";
+      if (role == null) return "AuthRole error.";
+      print(role);
+      return null;
     } on AuthException catch (error) {
       return "Supabase error: ${error.message}";
     } catch (error) {
@@ -55,34 +56,27 @@ class SupabaseService {
     }
   }
 
-  Future<String?> recoverPassword({
-      required String email
-  }) async => null;
+  Future<String?> recoverPassword({required String email}) async => null;
 
-  Future<void> signOut() async =>
-      await _client.auth.signOut();
-
-  Future<String?> get role async {
-    try {
-      if (user == null) return null;
-      if (_roles.containsKey(user!.id)) return _roles[user!.id];
-      final res = await _client
-          .from("logins").select("auth_role")
-          .eq("auth_id", user!.id)
-          .single();
-      _roles[user!.id] = res["auth_role"];
-      return _roles[user!.id];
-    } on PostgrestException catch (error) {
-      return "Supabase error: ${error.message}";
-    } catch (error) {
-      return "Unexpected error: $error";
-    }
+  Future<void> signOut() async {
+    await _client.auth.signOut();
   }
 
-  Future<bool?> get privileged async {
-    final permission = await role;
-    return permission == "admin";
+  DataMap? _decode(String token) {
+    final parts = token.split('.');
+    if (parts.length != 3) return null;
+    final payload = base64Url.decode(base64Url.normalize(parts[1]));
+    return jsonDecode(utf8.decode(payload)) as DataMap;
   }
+
+  AuthRole? get role {
+    final token = _client.auth.currentSession?.accessToken;
+    if (token == null) return null;
+    print(_decode(token));
+    return AuthRole.parse(_decode(token)?['auth_role'] as String?);
+  }
+
+  bool get privileged => role == AuthRole.admin;
 
   // Database methods
   static final String _memberColumnId = "id";
