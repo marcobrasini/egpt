@@ -9,6 +9,7 @@ import 'package:egpt/admin/schedule/pattern_widget.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:form_builder_extra_fields/form_builder_extra_fields.dart';
+import 'package:provider/provider.dart';
 
 
 class MeetingWidget extends StatefulWidget {
@@ -29,13 +30,13 @@ class MeetingWidget extends StatefulWidget {
 }
 
 class MeetingWidgetState extends State<MeetingWidget> {
-  static final admin = AdminSource();
-  static final register = admin.register;
+  late final AdminSource admin;
   final _meetingForm = GlobalKey<FormBuilderState>();
   final _fixtureForm = GlobalKey<FixtureWidgetState>();
   final _patternForm = GlobalKey<PatternWidgetState>();
   Product? _product;
   Member? _member;
+
 
   Map<String, dynamic>? get data {
     final meetingForm = _meetingForm.currentState;
@@ -62,6 +63,7 @@ class MeetingWidgetState extends State<MeetingWidget> {
 
   @override
   void initState() {
+    admin = context.read<AdminSource>();
     _member = widget.meeting?.member;
     _product = widget.meeting?.product;
     super.initState();
@@ -77,17 +79,17 @@ class MeetingWidgetState extends State<MeetingWidget> {
     enabled: widget.enabled && widget.creating,
     suggestionsCallback: (pattern) {
       if (pattern.isNotEmpty) {
-        return register.memberNames.where(
+        return admin.register.memberNames.where(
             (name) => name.toLowerCase().contains(pattern.toLowerCase()
         )).toList(growable: false);
       } else {
-        return register.memberNames;
+        return admin.register.memberNames;
       }
     },
     onChanged: (name) {
       if (name != null && name != _member?.name) {
         setState(() {
-          _member = register.members.firstWhere((m) => m.name == name);
+          _member = admin.register.members.firstWhere((m) => m.name == name);
           final valid = _member!.products.where((p) => p.isValid()).toList();
           if (valid.length == 1) {
             _product = valid.first;

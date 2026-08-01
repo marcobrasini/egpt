@@ -51,6 +51,9 @@ dependencies:
     path: ../calendar
   uuid: ^4.6.0
   google_sign_in: ^7.2.0
+  font_awesome_flutter: ^10.12.0
+  googleapis: ^16.0.0
+  extension_google_sign_in_as_googleapis_auth: ^3.0.0
 
 dev_dependencies:
   flutter_test:

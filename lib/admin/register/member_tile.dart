@@ -48,24 +48,27 @@ class MemberTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4.0,
-      margin: EdgeInsets.all(8.0),
-      child: ListTile(
-        leading: tileAvatar(
-          radius: 35,
-          ratio: 0.75,
-          color: member.color,
-        ),
-        title: Text(member.name,
-          style: TextStyle(
-            fontSize: 18,
+      elevation: 8.0,
+      margin: EdgeInsets.all(12.0),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: ListTile(
+          leading: tileAvatar(
+            radius: 35,
+            ratio: 0.75,
+            color: member.color,
           ),
+          title: Text(member.name,
+            style: TextStyle(
+              fontSize: 18,
+            ),
+          ),
+          subtitle: tileProducts(
+              spacing: 8.0
+          ),
+          onTap: () => setMember(context, member),
+          onLongPress: () => delMember(context, member),
         ),
-        subtitle: tileProducts(
-            spacing: 8.0
-        ),
-        onTap: () => setMember(context, member),
-        onLongPress: () => delMember(context, member),
       ),
     );
   }

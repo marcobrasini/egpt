@@ -9,11 +9,15 @@ class RegisterSource {
     return instance;
   }
 
-  List<Member> members = [];
-  List<Product> get products => members.expand((m) => m.products).toList();
+  final List<Member> _members = [];
+  List<Member> get members => _members;
+  List<Product> get products => _members.expand((m) => m.products).toList();
+
+  void append(List<Member> members) => _members.addAll(members);
+
 
   Future<void> createMember(Member member) async {
-    members.add(member);
+    _members.add(member);
   }
 
   Future<void> updateMember(Member member) async {
@@ -21,7 +25,7 @@ class RegisterSource {
   }
 
   Future<void> deleteMember(Member member) async {
-    members.remove(member);
+    _members.remove(member);
   }
 
   Future<void> createProduct(Product product) async {
@@ -35,11 +39,11 @@ class RegisterSource {
     member(product.memberId).products.remove(product);
   }
 
-  Member member(String memberId) => members
-      .firstWhere((m) => m.id == memberId);
+  Member member(String memberId) =>
+      members.singleWhere((m) => m.id == memberId);
 
-  Product product(String productId) => products
-      .firstWhere((p) => p.id == productId);
+  Product product(String productId) =>
+      products.singleWhere((p) => p.id == productId);
 
   (Member, Product) getMemberAndProduct(String productId) {
     final member = members.firstWhere((m) => m.products.any((p) => p.id == productId));
@@ -47,14 +51,12 @@ class RegisterSource {
     return (member, product);
   }
 
+  List<String> get memberNames =>
+      members.map((member) => member.name).toList();
 
-  List<String> get memberNames => members.map(
-          (member) => member.name
-  ).toList();
-  List<String> get memberFirstNames => members.map(
-          (member) => member.firstName
-  ).toList();
-  List<String> get memberLastNames => members.map(
-          (member) => member.lastName
-  ).toList();
+  List<String> get memberFirstNames =>
+      members.map((member) => member.firstName).toList();
+
+  List<String> get memberLastNames =>
+      members.map((member) => member.lastName).toList();
 }

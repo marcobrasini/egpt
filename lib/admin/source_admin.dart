@@ -1,40 +1,60 @@
-import 'package:flutter/material.dart';
-import 'package:egpt/admin/source_register.dart';
-import 'package:egpt/admin/source_schedule.dart';
-import 'package:egpt/models/member.dart';
-import 'package:egpt/models/product.dart';
-import 'package:egpt/models/meeting.dart';
-import 'package:egpt/services/supabase_service.dart';
+import "package:flutter/foundation.dart";
+import "package:egpt/admin/source_register.dart";
+import "package:egpt/admin/source_schedule.dart";
+import "package:egpt/models/meeting.dart";
+import "package:egpt/models/member.dart";
+import "package:egpt/models/product.dart";
+import "package:egpt/services/egpt_services.dart";
+import "package:egpt/services/api/calendar_service.dart";
+import "package:egpt/services/api/database_service.dart";
 
 
-class AdminSource extends ChangeNotifier{
-  static final instance = AdminSource._singleton();
-  final supabase = SupabaseService();
+class AdminSource extends ChangeNotifier {
+
+  AdminSource({required this.services});
+
+  final EGPTServices services;
+
+  DatabaseService get database => services.database;
+  CalendarService get calendar => services.calendar;
+
   final register = RegisterSource();
   final schedule = ScheduleSource();
 
-  AdminSource._singleton();
+  bool _loading = false;
+  Object? _error;
 
-  factory AdminSource() {
-    return instance;
-  }
+  bool get loading => _loading;
+  Object? get error => _error;
 
   void reset() {
     register.members.clear();
     schedule.clear();
   }
 
-  void build() async {
-    await Future.wait([_buildRegister()]);
-    await Future.wait([_buildSchedule()]);
+  Future<void> build() async {
+    _loading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      print("meetings ${calendar.meetings()}");
+      await Future.wait([_buildRegister()]);
+      await Future.wait([_buildSchedule()]);
+    } catch (error) {
+      _error = error;
+      print("error $error");
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _buildRegister() async {
-    register.members = await supabase.buildRegister();
+    register.append(await database.buildRegister());
   }
 
   Future<void>  _buildSchedule() async {
-    schedule.append(await supabase.buildSchedule());
+    schedule.append(await database.buildSchedule());
   }
 
   // ── Member ──────────────────────────────────────────────────────────────
@@ -46,7 +66,7 @@ class AdminSource extends ChangeNotifier{
     register.createMember(member);
     notifyListeners();
     try {
-      await supabase.createMember(member);
+      await database.createMember(member);
       return member;
     } catch (e) {
       register.deleteMember(member);
@@ -60,7 +80,7 @@ class AdminSource extends ChangeNotifier{
     register.updateMember(member);
     notifyListeners();
     try {
-      await supabase.updateMember(member);
+      await database.updateMember(member);
       return member;
     } catch (e) {
       if (previous != null) {
@@ -76,7 +96,7 @@ class AdminSource extends ChangeNotifier{
     register.deleteMember(member);
     notifyListeners();
     try {
-      await supabase.deleteMember(member);
+      await database.deleteMember(member);
       return member;
     } catch (e) {
       if (previous != null) {
@@ -96,7 +116,7 @@ class AdminSource extends ChangeNotifier{
     register.createProduct(product);
     notifyListeners();
     try {
-      await supabase.createProduct(product);
+      await database.createProduct(product);
       return product;
     } catch (e) {
       register.deleteProduct(product);
@@ -110,7 +130,7 @@ class AdminSource extends ChangeNotifier{
     register.updateProduct(product);
     notifyListeners();
     try {
-      await supabase.updateProduct(product);
+      await database.updateProduct(product);
       return product;
     } catch (e) {
       if (previous != null) {
@@ -126,7 +146,7 @@ class AdminSource extends ChangeNotifier{
     register.deleteProduct(product);
     notifyListeners();
     try {
-      await supabase.deleteProduct(product);
+      await database.deleteProduct(product);
       return product;
     } catch (e) {
       if (previous != null) {
@@ -144,7 +164,7 @@ class AdminSource extends ChangeNotifier{
 
   Future<Meeting> insertMeeting(Meeting meeting) async {
     try {
-      final _meeting = await supabase.createMeeting(meeting);
+      final _meeting = await database.createMeeting(meeting);
       schedule.insertMeeting(_meeting);
       notifyListeners();
       return _meeting;
@@ -158,7 +178,7 @@ class AdminSource extends ChangeNotifier{
     schedule.modifyMeeting(meeting);
     notifyListeners();
     try {
-      await supabase.updateMeeting(meeting);
+      await database.updateMeeting(meeting);
       return meeting;
     } catch (e) {
       schedule.modifyMeeting(toUpdate);
@@ -172,7 +192,7 @@ class AdminSource extends ChangeNotifier{
     schedule.removeMeeting(meeting);
     notifyListeners();
     try {
-      await supabase.deleteMeeting(meeting);
+      await database.deleteMeeting(meeting);
       return meeting;
     } catch (e) {
       schedule.insertMeeting(toDelete);

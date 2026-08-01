@@ -17,5 +17,14 @@ class Session extends Meeting {
     parentId: null,
   );
 
-  bool presence;
+  factory Session.build({required Meeting meeting}) => Session(
+    id: meeting.id,
+    member: meeting.member,
+    product: meeting.product,
+    start: meeting.start,
+    stop: meeting.stop,
+    presence: null,
+  );
+
+  bool? presence;
 }

@@ -4,11 +4,11 @@ import 'package:egpt/models/meeting.dart';
 import 'package:egpt/admin/source_admin.dart';
 import 'package:egpt/admin/schedule/meeting_widget.dart';
 import 'package:egpt/admin/schedule/option_widget.dart';
+import 'package:provider/provider.dart';
 
 
 class CalendarWidget extends StatefulWidget {
-  final bool enabled;
-  const CalendarWidget({this.enabled = true, super.key});
+  const CalendarWidget({super.key});
 
   @override
   State<CalendarWidget> createState() => _CalendarWidgetState();
@@ -16,7 +16,13 @@ class CalendarWidget extends StatefulWidget {
 
 class _CalendarWidgetState extends State<CalendarWidget>
     with AutomaticKeepAliveClientMixin {
-  final admin = AdminSource();
+  late final AdminSource admin;
+
+  @override
+  void initState() {
+    super.initState();
+    admin = context.read<AdminSource>();
+  }
 
   @override
   bool get wantKeepAlive => true;

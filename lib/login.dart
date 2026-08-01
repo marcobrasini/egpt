@@ -1,12 +1,17 @@
 import "package:flutter/material.dart";
 import "package:flutter_login/flutter_login.dart";
 import "package:egpt/services/supabase_service.dart";
+import "package:egpt/services/api/provider_service.dart";
+import "package:egpt/services/providers/google_provider.dart";
 
 
 class LoginPage extends StatelessWidget {
   LoginPage({super.key});
 
   final supabase = SupabaseService();
+  static final List<ProviderService> providers = [
+    GoogleService(),
+  ];
 
   Future<String?> _login(LoginData data) => supabase.signIn(
     email: data.name.trim(),
@@ -27,6 +32,16 @@ class LoginPage extends StatelessWidget {
       navigateBackAfterRecovery: true,
       onSubmitAnimationCompleted: () =>
           Navigator.of(context).pushReplacementNamed("/"),
+
+      loginProviders: [
+        for (final provider in providers)
+          if (provider.available)
+            LoginProvider(
+              icon: provider.icon,
+              label: provider.label,
+              callback: () => supabase.signInWith(provider),
+            ),
+      ],
 
       messages: LoginMessages(
         userHint: "Email",
