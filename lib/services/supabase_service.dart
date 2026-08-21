@@ -1,8 +1,9 @@
 import 'dart:convert';
+import 'package:egpt/models/session.dart';
 import 'package:egpt/services/api/auth_service.dart';
 import 'package:egpt/services/api/database_service.dart';
 import 'package:egpt/services/api/provider_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as spb;
 import 'package:calendar/calendar.dart';
 import 'package:egpt/models/meeting.dart';
 import 'package:egpt/models/member.dart';
@@ -15,18 +16,18 @@ typedef DataMap = Map<String, dynamic>;
 
 class SupabaseService implements DatabaseService, AuthService {
 
-  static OAuthProvider _oAuth(ProviderService provider) =>
+  static spb.OAuthProvider _oAuth(ProviderService provider) =>
       switch (provider.identity) {
-        ProviderIdentity.google => OAuthProvider.google,
-        ProviderIdentity.apple  => OAuthProvider.apple,
+        ProviderIdentity.google => spb.OAuthProvider.google,
+        ProviderIdentity.apple  => spb.OAuthProvider.apple,
       };
   static final instance = SupabaseService._singleton();
   SupabaseService._singleton();
 
   factory SupabaseService() => instance;
-  final client = Supabase.instance.client;
-  Session? get session => client.auth.currentSession;
-  User? get user => client.auth.currentUser;
+  final client = spb.Supabase.instance.client;
+  spb.Session? get session => client.auth.currentSession;
+  spb.User? get user => client.auth.currentUser;
 
   @override
   Future<String?> signInWith(ProviderService provider) async {
@@ -45,7 +46,7 @@ class SupabaseService implements DatabaseService, AuthService {
       return error.toString();
     } on IdentityFailure catch (error) {
       return error.message;
-    } on AuthException catch (error) {
+    } on spb.AuthException catch (error) {
       return "Authentication error: ${error.message}";
     } catch (error) {
       return "Unexpected error: $error";
@@ -64,7 +65,7 @@ class SupabaseService implements DatabaseService, AuthService {
       if (result.user == null) return "Login failed.";
       if (role == null) return "User role undefined.";
       return null;
-    } on AuthException catch (error) {
+    } on spb.AuthException catch (error) {
       return "Authentication error: ${error.message}";
     } catch (error) {
       return "Unexpected error: $error";
@@ -220,6 +221,7 @@ class SupabaseService implements DatabaseService, AuthService {
   static final String _meetingColumnPatternRule = "recurrence_rule";
 
   DataMap meetingToSupabase(Meeting meeting) => {
+    if (meeting.id != null) _meetingColumnId: meeting.id,
     _meetingColumnProductId: meeting.product.id,
     _meetingColumnStart: meeting.start.toString(),
     _meetingColumnStop: meeting.stop.toString(),
@@ -266,6 +268,52 @@ class SupabaseService implements DatabaseService, AuthService {
     return meeting;
   }
 
+  // Session ─────────────────────────────────────────────────────────────────
+  static final String _sessionColumnPresence = "presence";
+
+  DataMap sessionToSupabase(Session session) => {
+    if (session.id != null) _meetingColumnId: session.id,
+    _meetingColumnProductId: session.product.id,
+    _meetingColumnStart: session.start.toString(),
+    _meetingColumnStop: session.stop.toString(),
+    _sessionColumnPresence: session.presence,
+  };
+
+  Session supabaseToSession(DataMap row) => Session.build(
+    meeting: supabaseToMeeting(row),
+    presence: row[_sessionColumnPresence],
+  );
+
+  @override
+  Future<Session> createSession(Session session) async {
+    final data = sessionToSupabase(session);
+    print('add_session payload: $data');
+    final id = await client.rpc(
+        "add_session", params: {
+      'p_session': data,
+    });
+    return Session.make(id: id, data: session.get());
+  }
+
+  @override
+  Future<Session> updateSession(Session session) async {
+    await client.rpc(
+        "set_session", params: {
+      'p_session_id': session.id,
+      'p_session': sessionToSupabase(session),
+    });
+    return session;
+  }
+
+  @override
+  Future<Session> deleteSession(Session session) async {
+    await client.rpc(
+        "del_session", params: {
+      'p_session_id': session.id,
+    });
+    return session;
+  }
+
   // Admin ───────────────────────────────────────────────────────────────────
   @override
   Future<List<Member>> buildRegister() async {
@@ -284,13 +332,23 @@ class SupabaseService implements DatabaseService, AuthService {
   }
 
   @override
-  Future<List<Meeting>> buildSchedule() async {
-    final schedule = await client.rpc('get_schedule');
-    final List<Meeting> meeting = [];
+  Future<List<Meeting>> buildMeetings() async {
+    final schedule = await client.rpc('get_meetings');
+    final List<Meeting> meetings = [];
     for (final row in schedule) {
-      meeting.add(supabaseToMeeting(row));
+      meetings.add(supabaseToMeeting(row));
     }
-    return meeting;
+    return meetings;
+  }
+
+  @override
+  Future<List<Session>> buildSessions() async {
+    final schedule = await client.rpc('get_sessions');
+    final List<Session> sessions = [];
+    for (final row in schedule) {
+      sessions.add(supabaseToSession(row));
+    }
+    return sessions;
   }
 }
 

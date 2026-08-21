@@ -1,4 +1,5 @@
 import 'package:egpt/admin/admin_presence.dart';
+import 'package:egpt/admin/presence/widget_presence.dart';
 import 'package:egpt/admin/register/widget_register.dart';
 import 'package:egpt/services/egpt_services.dart';
 import 'package:egpt/admin/admin_register.dart';
@@ -17,13 +18,6 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage> {
   late final AdminSource admin;
-
-  @override
-  void initState() {
-    super.initState();
-    admin = AdminSource(services: context.read<EGPTServices>());
-    admin.build();
-  }
 
   void _logout() async {
     await admin.services.signOut();
@@ -72,33 +66,41 @@ class _AdminPageState extends State<AdminPage> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    admin = AdminSource(services: context.read<EGPTServices>());
+    admin.build();
+  }
+
+  @override
+  void dispose() {
+    admin.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: admin,
       child: DefaultTabController(
         length: 3,
         initialIndex: 1,
-        child: MultiProvider(
-          providers: [
-            ChangeNotifierProvider<AdminSource>.value(value: admin),
-          ],
-          child: Scaffold(
-            drawer: mainDrawer(context),
-            body: TabBarView(
-              physics: NeverScrollableScrollPhysics(),
-              children: [
-                Center(child: SchedulePage()),
-                Center(child: PresencePage()),
-                Center(child: RegisterWidget()),
-              ],
-            ),
-            bottomNavigationBar: TabBar(
-              tabs: [
-                Tab(icon: Icon(Icons.calendar_month)),
-                Tab(icon: Icon(Icons.home)),
-                Tab(icon: Icon(Icons.person)),
-              ],
-            ),
+        child: Scaffold(
+          drawer: mainDrawer(context),
+          body: TabBarView(
+            physics: NeverScrollableScrollPhysics(),
+            children: [
+              Center(child: SchedulePage()),
+              Center(child: PresencePage()),
+              Center(child: RegisterWidget()),
+            ],
+          ),
+          bottomNavigationBar: TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.calendar_month)),
+              Tab(icon: Icon(Icons.home)),
+              Tab(icon: Icon(Icons.person)),
+            ],
           ),
         ),
       ),

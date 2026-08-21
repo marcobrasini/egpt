@@ -16,12 +16,6 @@ class _RegisterWidgetState extends State<RegisterWidget> {
   late final AdminSource admin;
   String _pattern = "";
 
-  @override
-  void initState() {
-    super.initState();
-    admin = context.read<AdminSource>();
-  }
-
   List<Member> _filter(List<Member> members) {
     if (_pattern.isEmpty) return members;
     return members.where((member) {
@@ -30,20 +24,33 @@ class _RegisterWidgetState extends State<RegisterWidget> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    admin = context.read<AdminSource>();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return CustomScrollView(
       slivers: [
         SliverAppBar(
           backgroundColor: Theme.of(context).primaryColor,
-          elevation: 12.0,
           centerTitle: true,
-          titleSpacing: 12.0,
           title: Text("Membri",
             style: TextStyle(
-              color: Colors.white,
+              color: scheme.onPrimary,
               fontSize: 28,
             ),
           ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.person_add,
+                color: scheme.onPrimary,
+              ),
+              onPressed: () {},
+            )
+          ],
         ),
         SliverAppBar(
           floating: true,
@@ -55,7 +62,7 @@ class _RegisterWidgetState extends State<RegisterWidget> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Padding(
-                  padding: EdgeInsetsGeometry.all(20.0),
+                  padding: EdgeInsetsGeometry.symmetric(horizontal: 24.0),
                   child: TextField(
                     onChanged: (value) => setState(() {
                       _pattern = value;
@@ -90,7 +97,12 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                 child: Center(
                   child: Text(_pattern.isEmpty
                       ? "Nessun membro"
-                      : "Nessuna corrispondenza"),
+                      : "Nessuna corrispondenza",
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      color: scheme.outline,
+                    ),
+                  ),
                 ),
               );
             }

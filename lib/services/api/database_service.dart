@@ -1,6 +1,7 @@
 import "package:egpt/models/member.dart";
 import "package:egpt/models/product.dart";
 import "package:egpt/models/meeting.dart";
+import "package:egpt/models/session.dart";
 
 
 abstract class DatabaseService {
@@ -17,8 +18,13 @@ abstract class DatabaseService {
   Future<Meeting> updateMeeting(Meeting meeting);
   Future<Meeting> deleteMeeting(Meeting meeting);
 
+  Future<Session> createSession(Session session);
+  Future<Session> updateSession(Session session);
+  Future<Session> deleteSession(Session session);
+
   Future<List<Member>> buildRegister();
-  Future<List<Meeting>> buildSchedule();
+  Future<List<Meeting>> buildMeetings();
+  Future<List<Session>> buildSessions();
 
   Future<void> signOut();
   

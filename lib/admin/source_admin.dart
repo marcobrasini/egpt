@@ -1,3 +1,4 @@
+import "package:egpt/models/session.dart";
 import "package:flutter/foundation.dart";
 import "package:egpt/admin/source_register.dart";
 import "package:egpt/admin/source_schedule.dart";
@@ -37,12 +38,10 @@ class AdminSource extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      print("meetings ${calendar.meetings()}");
       await Future.wait([_buildRegister()]);
       await Future.wait([_buildSchedule()]);
     } catch (error) {
       _error = error;
-      print("error $error");
     } finally {
       _loading = false;
       notifyListeners();
@@ -54,7 +53,8 @@ class AdminSource extends ChangeNotifier {
   }
 
   Future<void>  _buildSchedule() async {
-    schedule.append(await database.buildSchedule());
+    schedule.meetingSource.append(await database.buildMeetings());
+    schedule.sessionSource.append(await database.buildSessions());
   }
 
   // ── Member ──────────────────────────────────────────────────────────────
@@ -188,7 +188,9 @@ class AdminSource extends ChangeNotifier {
   }
 
   Future<Meeting> removeMeeting(Meeting meeting) async {
-    final toDelete = _findMeeting(meeting.id!)!.copy();
+    schedule.meetings.forEach((m) => print(m.get()));
+    print(meeting.id!);
+    final toDelete = _findMeeting(meeting.id!)!;
     schedule.removeMeeting(meeting);
     notifyListeners();
     try {
@@ -197,6 +199,22 @@ class AdminSource extends ChangeNotifier {
     } catch (e) {
       schedule.insertMeeting(toDelete);
       notifyListeners();
+      rethrow;
+    }
+  }
+
+  // ── Session ─────────────────────────────────────────────────────────────
+
+  Session? _findSession(String id) =>
+      schedule.sessions.where((s) => s.id == id).singleOrNull;
+
+  Future<Session> insertSession(Session session) async {
+    try {
+      final _session = await database.createSession(session);
+      schedule.insertSession(_session);
+      notifyListeners();
+      return _session;
+    } catch (e) {
       rethrow;
     }
   }

@@ -1,3 +1,4 @@
+import 'package:egpt/models/session.dart';
 import 'package:flutter/material.dart';
 import 'package:calendar/calendar.dart';
 import 'package:egpt/models/meeting.dart';
@@ -32,9 +33,11 @@ class _CalendarWidgetState extends State<CalendarWidget>
     final lower = action.toLowerCase();
     return await showDialog<MeetingType?>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("$action appuntamento"),
-        content: Column(
+      builder: (context) => ChangeNotifierProvider<AdminSource>.value(
+        value: admin,
+        child: AlertDialog(
+          title: Text("$action appuntamento"),
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (meeting.isInstance) Column(
@@ -68,37 +71,8 @@ class _CalendarWidgetState extends State<CalendarWidget>
                     ],
                   )
               ),
-            ]
-        ),
-        actionsAlignment: MainAxisAlignment.spaceBetween,
-        actions: [
-          TextButton(
-            child: const Text("Annulla"),
-            onPressed: () {
-              Navigator.of(context).pop(null);
-            },
+            ],
           ),
-          TextButton(
-            child: Text(action),
-            onPressed: () async {
-              Navigator.of(context).pop(
-                  typeKey.currentState!.meetingType!
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<Meeting?> makeMeeting(BuildContext context, DateTime datetime) async {
-    final meetingWidgetKey = GlobalKey<MeetingWidgetState>();
-    return await showDialog<Meeting?>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Nuovo meeting"),
-          content: MeetingWidget(null, datetime: datetime, key: meetingWidgetKey),
           actionsAlignment: MainAxisAlignment.spaceBetween,
           actions: [
             TextButton(
@@ -108,65 +82,96 @@ class _CalendarWidgetState extends State<CalendarWidget>
               },
             ),
             TextButton(
-              child: const Text("Conferma"),
+              child: Text(action),
               onPressed: () async {
-                // try {
-                final data = meetingWidgetKey.currentState?.data;
-                if (data != null) {
-                  if (context.mounted) {
-                    Navigator.of(context).pop(
-                        await admin.insertMeeting(Meeting.make(data: data))
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Salvataggio riuscito.')),
-                    );
-                  }
-                }
-                // } catch (e) {
-                //   if (context.mounted) {
-                //     Navigator.of(context).pop(null);
-                //     ScaffoldMessenger.of(context).showSnackBar(
-                //       SnackBar(content: Text('Salvataggio fallito: $e')),
-                //     );
-                //   }
-                // }
+                Navigator.of(context).pop(
+                    typeKey.currentState!.meetingType!
+                );
               },
             ),
           ],
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  Future<Meeting?> makeMeeting(BuildContext context, DateTime datetime) async {
+    final meetingWidgetKey = GlobalKey<MeetingWidgetState>();
+    return await showDialog<Meeting?>(
+      context: context,
+      builder: (context) => ChangeNotifierProvider<AdminSource>.value(
+        value: admin,
+        child: AlertDialog(
+          title: const Center(child: Text("Nuovo meeting")),
+          content: MeetingWidget(null, key: meetingWidgetKey, datetime: datetime),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            TextButton(
+              child: const Text("Annulla"),
+              onPressed: () => Navigator.of(context).pop(null),
+            ),
+            TextButton(
+              child: const Text("Conferma"),
+              onPressed: () async {
+                try {
+                  final data = meetingWidgetKey.currentState?.data;
+                  if (data != null) {
+                    if (context.mounted) {
+                      Navigator.of(context).pop(
+                          await admin.insertMeeting(Meeting.make(data: data))
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Salvataggio riuscito.')),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    Navigator.of(context).pop(null);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Salvataggio fallito: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Future<Meeting?> editMeeting(BuildContext context, Meeting meeting) async {
     final meetingWidgetKey = GlobalKey<MeetingWidgetState>();
+    final isSession = meeting is Session;
     return await showDialog<Meeting?>(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Meeting"),
-            content: MeetingWidget(meeting, key: meetingWidgetKey),
-            actionsAlignment: MainAxisAlignment.spaceBetween,
-            actions: [
-              TextButton(
-                child: const Text("Cancella"),
-                onPressed: () async {
-                  final deleted = await delMeeting(context, meeting);
-                  Navigator.of(context).pop(deleted);
-                },
-              ),
-              TextButton(
-                child: const Text("Modifica"),
-                onPressed: () async {
-                  final data = meetingWidgetKey.currentState!.data!;
-                  final fixture = Fixture(start: data["start"], stop: data["stop"]);
-                  final updated = await setMeeting(context, meeting, fixture);
-                  Navigator.of(context).pop(updated);
-                },
-              ),
-            ],
-          );
-        }
+      context: context,
+      builder: (context) => ChangeNotifierProvider<AdminSource>.value(
+        value: admin,
+        child: AlertDialog(
+          title: Center(child: Text(isSession ? "Sessione" : "Incontro")),
+          content: MeetingWidget(meeting, key: meetingWidgetKey, enabled: !isSession,),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: (isSession) ? null : [
+            TextButton(
+              child: const Text("Cancella"),
+              onPressed: () async {
+                final deleted = await delMeeting(context, meeting);
+                Navigator.of(context).pop(deleted);
+              },
+            ),
+            TextButton(
+              child: const Text("Modifica"),
+              onPressed: () async {
+                final data = meetingWidgetKey.currentState!.data!;
+                final fixture = Fixture(start: data["start"], stop: data["stop"]);
+                final updated = await setMeeting(context, meeting, fixture);
+                if (mounted) Navigator.of(context).pop(updated);
+              },
+            ),
+          ],
+        )
+      ),
     );
   }
 
@@ -255,8 +260,7 @@ class _CalendarWidgetState extends State<CalendarWidget>
     return Calendar<Meeting>(
       view: CalendarView.weekly,
       source: admin.schedule,
-      begHour: 6,
-      endHour: 22,
+      timeScheme: TimeScheme(6, 24, round: 15),
       onFrameTap: (datetime) {
         makeMeeting(context, datetime);
       },
