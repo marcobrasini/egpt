@@ -26,6 +26,17 @@ class _AdminStatisticState extends State<AdminStatistic> {
     final scheme = Theme.of(context).colorScheme;
     return SliverMainAxisGroup(
       slivers: [
+        SliverAppBar(
+          automaticallyImplyActions: false,
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+          title:  const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child:Text("Membri e abbonamenti",
+              style: TextStyle(fontSize: 24.0),
+            ),
+          ),
+        ),
         SliverToBoxAdapter(
           child: IntrinsicHeight(
             child: Row(
@@ -175,8 +186,17 @@ class _AdminStatisticState extends State<AdminStatistic> {
             ),
           ),
         ),
+        SliverAppBar(
+          automaticallyImplyActions: false,
+          automaticallyImplyLeading: false,
+          title:  const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child:Text("Presenze",
+              style: TextStyle(fontSize: 24.0),
+            ),
+          ),
+        ),
         SliverToBoxAdapter(
-          child: Card(
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: AspectRatio(
@@ -208,7 +228,6 @@ class _AdminStatisticState extends State<AdminStatistic> {
                 ),
               ),
             ),
-          ),
         ),
       ],
     );

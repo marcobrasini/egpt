@@ -26,6 +26,7 @@ class GoogleService implements ProviderService {
 
   GoogleSignInAccount? _account;
   Future<GoogleSignInAccount> get account async {
+    await initialize();
     _account ??= await GoogleSignIn.instance.attemptLightweightAuthentication();
     if (_account == null) {
       throw const IdentityFailure("No Google account associated.");

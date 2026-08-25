@@ -14,11 +14,9 @@ class GoogleCalendar implements CalendarService {
 
   final GoogleService provider;
 
-  GoogleSignInClientAuthorization? _authorization;
   Future<GoogleSignInClientAuthorization?> get authorization async {
     final client = await provider.client;
-    _authorization ??= await client.authorizationForScopes(_scopes);
-    return _authorization;
+    return await client.authorizationForScopes(_scopes);
   }
 
   @override
@@ -71,24 +69,33 @@ class GoogleCalendar implements CalendarService {
     return eventsCalendar;
   }
 
+  static String uuidToGoogle(String uuid) => uuid.replaceAll("-", "");
+
+  static String googleToUuid(String hex) => '${hex.substring(0,8)}-'
+      '${hex.substring(8,12)}-${hex.substring(12,16)}-${hex.substring(16,20)}'
+      '-${hex.substring(20)}';
+
+
   static Event meetingToGoogle(Meeting meeting) => Event(
-    id: meeting.id,
+    id: (meeting.id != null) ? uuidToGoogle(meeting.id!) : null,
     summary: meeting.subject,
-    start: EventDateTime(dateTime: meeting.start, timeZone: 'UTC'),
-    end: EventDateTime(dateTime: meeting.stop, timeZone: 'UTC'),
-    attendees: [
-      EventAttendee(
-        id: meeting.product.id!,
-        displayName: meeting.member.id!),
-    ],
-    recurrence: (meeting.pattern != null) ? [meeting.pattern!.toICSString()] : null,
-    recurringEventId: meeting.parentId,
+    start: EventDateTime(dateTime: meeting.start.toUtc(), timeZone: 'UTC'),
+    end: EventDateTime(dateTime: meeting.stop.toUtc(), timeZone: 'UTC'),
+    extendedProperties: EventExtendedProperties(
+      private: {
+        'memberId': meeting.member.id!,
+        'productId': meeting.product.id!,
+      },
+    ),
+    recurrence: (meeting.pattern != null)
+        ? [meeting.pattern!.toICSString()]
+        : null,
   );
 
   static Meeting googleToMeeting(Event event) => Meeting.build(
-    id: event.id!,
-    memberId: event.attendees![0].displayName!,
-    productId: event.attendees![0].id!,
+    id: googleToUuid(event.id!),
+    memberId: event.extendedProperties!.private!['memberId']!,
+    productId: event.extendedProperties!.private!['productId']!,
     start: event.start!.dateTime!,
     stop: event.end!.dateTime!,
     patternRule: event.recurrence?[0],
@@ -97,8 +104,6 @@ class GoogleCalendar implements CalendarService {
   @override
   Future<List<Meeting>> meetings() async {
     final eventsCalendar = await events();
-    print(eventsCalendar);
-    return [];
     return eventsCalendar.map((event) => googleToMeeting(event)).toList();
   }
 
@@ -106,19 +111,19 @@ class GoogleCalendar implements CalendarService {
   Future<void> createMeeting(Meeting meeting) async {
     final calendar = await api();
     final event = meetingToGoogle(meeting);
-    calendar.events.insert(event, "primary");
+    await calendar.events.insert(event, "primary");
   }
 
   @override
   Future<void> updateMeeting(Meeting meeting) async {
     final calendar = await api();
     final event = meetingToGoogle(meeting);
-    calendar.events.update(event, "primary", meeting.id!);
+    calendar.events.update(event, "primary", event.id!);
   }
 
   @override
   Future<void> deleteMeeting(Meeting meeting) async {
     final calendar = await api();
-    calendar.events.delete("primary", meeting.id!);
+    await calendar.events.delete("primary", uuidToGoogle(meeting.id!));
   }
 }

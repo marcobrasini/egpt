@@ -68,140 +68,126 @@ class _PresencePageState extends State<PresencePage>
     return CustomScrollView(
       slivers: [
         AdminStatistic(),
-        SliverToBoxAdapter(
-          child:  const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-            child:Text("Presenze",
-              style: TextStyle(fontSize: 28.0),
-            ),
-          ),
-        ),
-        SliverLayoutBuilder(
-          builder: (context, constraints) => SliverToBoxAdapter(
-            child: SizedBox(
-              height: constraints.viewportMainAxisExtent -
-                  constraints.precedingScrollExtent,
-              child: Agenda<Meeting>(
-                source: admin.schedule.meetingSource,
-                view: CalendarView.weekly,
-                scroll: CalendarScroll.sequential,
-                negligibleAgenda: true,
-                fixLastAnchor: false,
-                fixNextAnchor: false,
-                centredView: false,
-                lastAnchorBuilder: (context) => Container(
-                  color: scheme.inversePrimary,
-                  child: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Center(
-                      child: Text("Attenzione: ci sono vecchie presenze non registrate."),
-                    ),
-                  ),
+        SliverFillRemaining(
+          child: Agenda<Meeting>(
+            source: admin.schedule.meetingSource,
+            view: CalendarView.weekly,
+            scroll: CalendarScroll.sequential,
+            negligibleAgenda: true,
+            fixLastAnchor: false,
+            fixNextAnchor: false,
+            centredView: false,
+            lastAnchorBuilder: (context) => Container(
+              color: scheme.inversePrimary,
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Center(
+                  child: Text("Attenzione: ci sono vecchie presenze non registrate."),
                 ),
-                headerBuilder: (context, start, stop) => Row(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(start.format("dd MMMM yyyy"),
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    const Expanded(child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Divider(),
-                    )),
-                    Text(stop.format("dd MMMM yyyy"),
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-                emptyBuilder: (context) => Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          border: Border(top: BorderSide(color: scheme.outlineVariant)),
-                        ),
-                        child: Text("Non ci sono presenze\nda segnare",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16.0,
-                            color: scheme.outline,
-                          ),
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-                eventBuilder: (context, meeting) => PresenceWidget(
-                  meeting: meeting,
-                  presence: _presences[_key(meeting)],
-                  onChanged: (value) => _presences[_key(meeting)] = value,
-                ),
-                leftSwipeBuilder: (context) => ColoredBox(
-                  color: scheme.tertiaryContainer,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 32.0),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.delete,
-                            color: scheme.onTertiaryContainer,
-                            size: 24,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: Text("Cancella",
-                              style: TextStyle(
-                                color: scheme.onTertiaryContainer,
-                                fontSize: 16.0,
-                              ),
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                rightSwipeBuilder: (context) => ColoredBox(
-                  color: scheme.secondaryContainer,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 32.0),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: Text("Archivia",
-                              style: TextStyle(
-                                color: scheme.onSecondaryContainer,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                          Icon(Icons.archive,
-                            color: scheme.onSecondaryContainer,
-                            size: 24.0,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                onEventSwipedLeft: (meeting, fixture) async {
-                  await delMeeting(context, meeting);
-                },
-                onEventSwipedRight: (meeting, fixture) async {
-                  final session = await addSession(context, meeting);
-                  if (session != null) delMeeting(context, meeting);
-                },
-                swipeableEvent: true,
               ),
             ),
+            headerBuilder: (context, start, stop) => Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(start.format("dd MMMM yyyy"),
+                  style: TextStyle(fontSize: 16),
+                ),
+                const Expanded(child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Divider(),
+                )),
+                Text(stop.format("dd MMMM yyyy"),
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            emptyBuilder: (context) => Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: scheme.outlineVariant)),
+                    ),
+                    child: Text("Non ci sono presenze\nda segnare",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        color: scheme.outline,
+                      ),
+                    ),
+                  ),
+                )
+              ],
+            ),
+            eventBuilder: (context, meeting) => PresenceWidget(
+              meeting: meeting,
+              presence: _presences[_key(meeting)],
+              onChanged: (value) => _presences[_key(meeting)] = value,
+            ),
+            leftSwipeBuilder: (context) => ColoredBox(
+              color: scheme.tertiaryContainer,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 32.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.delete,
+                        color: scheme.onTertiaryContainer,
+                        size: 24,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Text("Cancella",
+                          style: TextStyle(
+                            color: scheme.onTertiaryContainer,
+                            fontSize: 16.0,
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            rightSwipeBuilder: (context) => ColoredBox(
+              color: scheme.secondaryContainer,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 32.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Text("Archivia",
+                          style: TextStyle(
+                            color: scheme.onSecondaryContainer,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.archive,
+                        color: scheme.onSecondaryContainer,
+                        size: 24.0,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            onEventSwipedLeft: (meeting, fixture) async {
+              await delMeeting(context, meeting);
+            },
+            onEventSwipedRight: (meeting, fixture) async {
+              final session = await addSession(context, meeting);
+              if (session != null) delMeeting(context, meeting);
+            },
+            swipeableEvent: true,
           ),
         ),
       ],

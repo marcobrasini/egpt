@@ -1,6 +1,4 @@
 import 'package:egpt/models/meeting.dart';
-import 'package:egpt/models/member.dart';
-import 'package:egpt/models/product.dart';
 
 
 class Session extends Meeting {

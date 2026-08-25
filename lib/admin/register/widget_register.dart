@@ -88,32 +88,29 @@ class _RegisterWidgetState extends State<RegisterWidget> {
           automaticallyImplyLeading: false,
           automaticallyImplyActions: false,
           centerTitle: true,
-          flexibleSpace: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsetsGeometry.all(12.0),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (value) => setState(() {
-                        _pattern = value;
-                      }),
-                      showCursor: true,
-                      decoration: InputDecoration(
-                        labelText: 'Cerca',
-                        icon: Icon(Icons.search),
-                      ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsetsGeometry.all(12.0),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => setState(() {
+                      _pattern = value;
+                    }),
+                    showCursor: true,
+                    decoration: InputDecoration(
+                      labelText: 'Cerca',
+                      icon: Icon(Icons.search),
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.person_add),
-                  onPressed: () => _addMember(context),
-                )
-              ],
-            ),
+              ),
+              IconButton(
+                icon: Icon(Icons.person_add),
+                onPressed: () => _addMember(context),
+              )
+            ],
           ),
         ),
         Consumer<AdminSource>(

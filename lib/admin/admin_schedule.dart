@@ -187,7 +187,7 @@ class _SchedulePageState extends State<SchedulePage>
         return await admin.removeMeeting(recurrence);
       case MeetingType.deviation:
         final recurrence = admin.schedule.meeting(meeting.parentId!);
-        recurrence.patternConclude(meeting.start);
+        recurrence.patternConclude(meeting.start.date);
         return (recurrence.isSignificant)
             ? await admin.modifyMeeting(recurrence)
             : await admin.removeMeeting(recurrence);

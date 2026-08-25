@@ -42,16 +42,15 @@ class MeetingWidgetState extends State<MeetingWidget> {
     final meetingForm = _meetingForm.currentState;
     final fixtureForm = _fixtureForm.currentState;
     final patternForm = _patternForm.currentState;
-    if ((meetingForm?.saveAndValidate() ?? false)
-        && fixtureForm != null && patternForm != null) {
+    if ((meetingForm?.saveAndValidate() ?? false) && fixtureForm != null) {
       final fixture = fixtureForm.data;
-      final pattern = patternForm.data;
-      if (fixture != null && pattern != null) {
+      final pattern = patternForm?.data;
+      if (fixture != null) {
         final data = Map<String, dynamic>.from(meetingForm!.value);
         return {
           ...data,
           ...fixture,
-          if (pattern["repeat"]) "pattern": Pattern(
+          if (pattern != null && pattern["repeat"]) "pattern": Pattern(
             type: PatternType.weekly,
             until: pattern["until"],
           )

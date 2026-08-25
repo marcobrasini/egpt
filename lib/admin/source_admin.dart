@@ -8,6 +8,7 @@ import "package:egpt/models/product.dart";
 import "package:egpt/services/egpt_services.dart";
 import "package:egpt/services/api/calendar_service.dart";
 import "package:egpt/services/api/database_service.dart";
+import 'package:uuid/uuid.dart';
 
 
 class AdminSource extends ChangeNotifier {
@@ -38,8 +39,8 @@ class AdminSource extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      await Future.wait([_buildRegister()]);
-      await Future.wait([_buildSchedule()]);
+      await _buildRegister();
+      await _buildSchedule();
     } catch (error) {
       _error = error;
     } finally {
@@ -53,8 +54,11 @@ class AdminSource extends ChangeNotifier {
   }
 
   Future<void>  _buildSchedule() async {
+    print("schedule");
     schedule.meetingSource.append(await database.buildMeetings());
+    print("loaded meetings");
     schedule.sessionSource.append(await database.buildSessions());
+    print(schedule.meetings.length);
   }
 
   // ── Member ──────────────────────────────────────────────────────────────
@@ -159,54 +163,32 @@ class AdminSource extends ChangeNotifier {
 
   // ── Meeting ─────────────────────────────────────────────────────────────
 
-  Meeting? _findMeeting(String id) =>
-      schedule.meetings.where((m) => m.id == id).singleOrNull;
-
   Future<Meeting> insertMeeting(Meeting meeting) async {
-    try {
-      final _meeting = await database.createMeeting(meeting);
-      schedule.insertMeeting(_meeting);
-      notifyListeners();
-      return _meeting;
-    } catch (e) {
-      rethrow;
-    }
+    final _meeting = Meeting.make(id: const Uuid().v4(), data: meeting.get());
+    await calendar.createMeeting(_meeting);
+    await database.createMeeting(_meeting);
+    schedule.insertMeeting(_meeting);
+    notifyListeners();
+    return _meeting;
   }
 
   Future<Meeting> modifyMeeting(Meeting meeting) async {
-    final toUpdate = _findMeeting(meeting.id!)!.copy();
     schedule.modifyMeeting(meeting);
+    await calendar.updateMeeting(meeting);
+    await database.updateMeeting(meeting);
     notifyListeners();
-    try {
-      await database.updateMeeting(meeting);
-      return meeting;
-    } catch (e) {
-      schedule.modifyMeeting(toUpdate);
-      notifyListeners();
-      rethrow;
-    }
+    return meeting;
   }
 
   Future<Meeting> removeMeeting(Meeting meeting) async {
-    schedule.meetings.forEach((m) => print(m.get()));
-    print(meeting.id!);
-    final toDelete = _findMeeting(meeting.id!)!;
     schedule.removeMeeting(meeting);
+    await database.deleteMeeting(meeting);
+    await calendar.deleteMeeting(meeting);
     notifyListeners();
-    try {
-      await database.deleteMeeting(meeting);
-      return meeting;
-    } catch (e) {
-      schedule.insertMeeting(toDelete);
-      notifyListeners();
-      rethrow;
-    }
+    return meeting;
   }
 
   // ── Session ─────────────────────────────────────────────────────────────
-
-  Session? _findSession(String id) =>
-      schedule.sessions.where((s) => s.id == id).singleOrNull;
 
   Future<Session> insertSession(Session session) async {
     try {

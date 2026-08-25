@@ -246,7 +246,7 @@ class SupabaseService implements DatabaseService, AuthService {
         "add_meeting", params: {
       'p_meeting': data,
     });
-    return Meeting.make(id: id, data: meeting.get());
+    return meeting;
   }
 
   @override
@@ -287,7 +287,6 @@ class SupabaseService implements DatabaseService, AuthService {
   @override
   Future<Session> createSession(Session session) async {
     final data = sessionToSupabase(session);
-    print('add_session payload: $data');
     final id = await client.rpc(
         "add_session", params: {
       'p_session': data,
