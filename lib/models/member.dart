@@ -67,4 +67,7 @@ class Member {
           (p) => p.id == productId
   );
 
+  bool get training =>  products.any((product) => product.isOngoing() && !product.isWarning());
+  bool get expiring =>  products.any((product) => product.isWarning());
+  bool get finished => !products.any((product) => product.isOngoing());
 }

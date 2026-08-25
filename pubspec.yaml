@@ -54,6 +54,7 @@ dependencies:
   font_awesome_flutter: ^10.12.0
   googleapis: ^16.0.0
   extension_google_sign_in_as_googleapis_auth: ^3.0.0
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:

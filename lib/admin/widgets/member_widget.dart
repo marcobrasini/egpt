@@ -42,9 +42,14 @@ class MemberWidgetState extends State<MemberWidget> {
   @override
   void initState() {
     super.initState();
-    _enabled = widget.enabled;
     _editing = false;
+    _enabled = widget.enabled;
     _editable = widget.member?.name == null ? false : true;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _color = widget.member?.color ?? Theme.of(context).primaryColor;
   }
 

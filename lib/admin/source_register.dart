@@ -10,11 +10,12 @@ class RegisterSource {
   }
 
   final List<Member> _members = [];
-  List<Member> get members => _members;
-  List<Product> get products => _members.expand((m) => m.products).toList();
 
   void append(List<Member> members) => _members.addAll(members);
 
+  List<Member> get members => _members;
+
+  Member member(String memberId) => members.singleWhere((m) => m.id == memberId);
 
   Future<void> createMember(Member member) async {
     _members.add(member);
@@ -28,6 +29,10 @@ class RegisterSource {
     _members.remove(member);
   }
 
+  List<Product> get products => _members.expand((m) => m.products).toList();
+
+  Product product(String productId) => products.singleWhere((p) => p.id == productId);
+
   Future<void> createProduct(Product product) async {
     member(product.memberId).products.add(product);
   }
@@ -38,12 +43,6 @@ class RegisterSource {
   Future<void> deleteProduct(Product product) async {
     member(product.memberId).products.remove(product);
   }
-
-  Member member(String memberId) =>
-      members.singleWhere((m) => m.id == memberId);
-
-  Product product(String productId) =>
-      products.singleWhere((p) => p.id == productId);
 
   (Member, Product) getMemberAndProduct(String productId) {
     final member = members.firstWhere((m) => m.products.any((p) => p.id == productId));
@@ -59,4 +58,9 @@ class RegisterSource {
 
   List<String> get memberLastNames =>
       members.map((member) => member.lastName).toList();
+
+  // Analytics
+  int get membersTraining => members.where((member) => member.training).length;
+  int get membersExpiring => members.where((member) => member.expiring).length;
+  int get membersFinished => members.where((member) => member.finished).length;
 }

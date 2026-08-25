@@ -66,31 +66,7 @@ class _PresencePageState extends State<PresencePage>
   Widget build(BuildContext context) {
     super.build(context);
     final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).primaryColor,
-        centerTitle: true,
-        title: Text("Presenze",
-          style: TextStyle(
-            color: scheme.onPrimary,
-            fontSize: 28,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.sync),
-            onPressed: () async {
-              admin.reset();
-              await admin.build();
-              print("meetings");
-              admin.schedule.meetings.forEach((m) => print(m.get()));
-              print("sessions");
-              admin.schedule.sessions.forEach((m) => print(m.get()));
-            },
-          )
-        ],
-      ),
-      body: Agenda<Meeting>(
+    return Agenda<Meeting>(
         source: admin.schedule.meetingSource,
         view: CalendarView.weekly,
         scroll: CalendarScroll.sequential,
@@ -209,7 +185,6 @@ class _PresencePageState extends State<PresencePage>
           if (session != null) delMeeting(context, meeting);
         },
         swipeableEvent: true,
-      ),
     );
   }
 }

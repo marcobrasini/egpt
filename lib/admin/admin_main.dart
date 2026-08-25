@@ -1,5 +1,5 @@
 import 'package:egpt/admin/admin_presence.dart';
-import 'package:egpt/admin/presence/widget_presence.dart';
+// import 'package:egpt/admin/presence/widget_presence.dart';
 import 'package:egpt/admin/register/widget_register.dart';
 import 'package:egpt/services/egpt_services.dart';
 import 'package:egpt/admin/admin_register.dart';
@@ -80,6 +80,7 @@ class _AdminPageState extends State<AdminPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return ChangeNotifierProvider.value(
       value: admin,
       child: DefaultTabController(
@@ -87,13 +88,23 @@ class _AdminPageState extends State<AdminPage> {
         initialIndex: 1,
         child: Scaffold(
           drawer: mainDrawer(context),
-          body: TabBarView(
-            physics: NeverScrollableScrollPhysics(),
-            children: [
-              Center(child: SchedulePage()),
-              Center(child: PresencePage()),
-              Center(child: RegisterWidget()),
+          body: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              SliverOverlapAbsorber(
+                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                sliver: SliverAppBar(
+                  forceElevated: innerBoxIsScrolled,
+                  centerTitle: true,
+                  title: const Text("Egpt",
+                    style: TextStyle(fontSize: 28),
+                  ),
+                ),
+              ),
             ],
+            body: const TabBarView(
+              physics: NeverScrollableScrollPhysics(),
+              children: [SchedulePage(), PresencePage(), RegisterWidget()],
+            ),
           ),
           bottomNavigationBar: TabBar(
             tabs: [
