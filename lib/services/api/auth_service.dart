@@ -1,4 +1,5 @@
-import "package:egpt/services/api/provider_service.dart";
+import "package:flutter/material.dart";
+import "provider_service.dart";
 
 
 enum AuthRole {
@@ -14,7 +15,7 @@ enum AuthRole {
 }
 
 
-abstract class AuthService {
+abstract class AuthService extends ChangeNotifier {
 
   Future<String?> signIn({required String email, required String password});
 
@@ -24,7 +25,13 @@ abstract class AuthService {
 
   Future<void> signOut();
 
+  Object? get client;
+
+  Object? get session;
+
   AuthRole? get role;
 
   bool get privileged;
+
+  bool get initialized;
 }

@@ -1,45 +1,32 @@
 import "package:flutter/material.dart";
 import "package:flutter_login/flutter_login.dart";
-import "package:egpt/services/supabase_service.dart";
-import "package:egpt/services/api/provider_service.dart";
-import "package:egpt/services/providers/google_provider.dart";
+import "package:provider/provider.dart";
+import "package:egpt/services/egpt_services.dart";
 
 
 class LoginPage extends StatelessWidget {
-  LoginPage({super.key});
-
-  final supabase = SupabaseService();
-  static final List<ProviderService> providers = [
-    GoogleService(),
-  ];
-
-  Future<String?> _login(LoginData data) => supabase.signIn(
-    email: data.name.trim(),
-    password: data.password,
-  );
-
-  Future<String?> _recoverPassword(String email) =>
-      supabase.recoverPassword(email: email.trim());
-
+  const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final services = context.read<EGPTServices>();
+
     return FlutterLogin(
       title: 'EGPT',
       userType: LoginUserType.email,
-      onLogin: _login,
-      onRecoverPassword: _recoverPassword,
+      onLogin: (data) => services.auth.signIn(
+        email: data.name.trim(),
+        password: data.password,
+      ),
+      onRecoverPassword: (email) => services.auth.recoverPassword(email: email),
       navigateBackAfterRecovery: true,
-      onSubmitAnimationCompleted: () =>
-          Navigator.of(context).pushReplacementNamed("/"),
-
       loginProviders: [
-        for (final provider in providers)
+        for (final provider in services.providers)
           if (provider.available)
             LoginProvider(
               icon: provider.icon,
               label: provider.label,
-              callback: () => supabase.signInWith(provider),
+              callback: () => services.auth.signInWith(provider),
             ),
       ],
 
@@ -71,4 +58,3 @@ class LoginPage extends StatelessWidget {
     );
   }
 }
-

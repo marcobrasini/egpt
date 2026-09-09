@@ -1,203 +1,124 @@
-import "package:egpt/models/session.dart";
 import "package:flutter/foundation.dart";
-import "package:egpt/admin/source_register.dart";
-import "package:egpt/admin/source_schedule.dart";
-import "package:egpt/models/meeting.dart";
-import "package:egpt/models/member.dart";
-import "package:egpt/models/product.dart";
-import "package:egpt/services/egpt_services.dart";
-import "package:egpt/services/api/calendar_service.dart";
-import "package:egpt/services/api/database_service.dart";
-import 'package:uuid/uuid.dart';
+import "../sources/source_register.dart";
+import "../sources/source_schedule.dart";
+import "../sources/source_training.dart";
+import "../services/egpt_services.dart";
+import "../models/meeting.dart";
+import "../models/member.dart";
+import "../models/product.dart";
+import "../models/session.dart";
 
 
 class AdminSource extends ChangeNotifier {
-
   AdminSource({required this.services});
-
-  final EGPTServices services;
-
-  DatabaseService get database => services.database;
-  CalendarService get calendar => services.calendar;
-
-  final register = RegisterSource();
-  final schedule = ScheduleSource();
 
   bool _loading = false;
   Object? _error;
 
-  bool get loading => _loading;
+  bool get isLoading => _loading;
   Object? get error => _error;
 
-  void reset() {
-    register.members.clear();
-    schedule.clear();
-  }
+  final EGPTServices services;
+  final register = RegisterSource();
+  final schedule = ScheduleSource();
+  final training = TrainingSource();
 
   Future<void> build() async {
     _loading = true;
     _error = null;
     notifyListeners();
     try {
-      await _buildRegister();
-      await _buildSchedule();
-    } catch (error) {
-      _error = error;
+      await services.database.buildRegister(register);
+      await services.database.buildSchedule(schedule);
+    } catch (e) {
+      _error = e;
     } finally {
       _loading = false;
       notifyListeners();
     }
   }
 
-  Future<void> _buildRegister() async {
-    register.append(await database.buildRegister());
-  }
-
-  Future<void>  _buildSchedule() async {
-    print("schedule");
-    schedule.meetingSource.append(await database.buildMeetings());
-    print("loaded meetings");
-    schedule.sessionSource.append(await database.buildSessions());
-    print(schedule.meetings.length);
-  }
-
-  // ── Member ──────────────────────────────────────────────────────────────
-
-  Member? _findMember(String id) =>
-      register.members.where((m) => m.id == id).singleOrNull;
-
-  Future<Member> createMember(Member member) async {
-    register.createMember(member);
+  Future<Member> insertMember(Member member) async {
+    final m = await services.database.createMember(member);
+    register.insertMember(m);
     notifyListeners();
-    try {
-      await database.createMember(member);
-      return member;
-    } catch (e) {
-      register.deleteMember(member);
-      notifyListeners();
-      rethrow;
-    }
+    return m;
   }
 
-  Future<Member> updateMember(Member member) async {
-    final previous = _findMember(member.id!);
-    register.updateMember(member);
+  Future<Member> modifyMember(Member member) async {
+    await services.database.updateMember(member);
+    register.modifyMember(member);
     notifyListeners();
-    try {
-      await database.updateMember(member);
-      return member;
-    } catch (e) {
-      if (previous != null) {
-        register.updateMember(previous);
-        notifyListeners();
-      }
-      rethrow;
-    }
+    return member;
   }
 
-  Future<Member> deleteMember(Member member) async {
-    final previous = _findMember(member.id!);
-    register.deleteMember(member);
+  Future<Member> removeMember(Member member) async {
+    await services.database.deleteMember(member);
+    register.removeMember(member);
     notifyListeners();
-    try {
-      await database.deleteMember(member);
-      return member;
-    } catch (e) {
-      if (previous != null) {
-        register.updateMember(previous);
-        notifyListeners();
-      }
-      rethrow;
-    }
+    return member;
   }
 
-  // ── Product ─────────────────────────────────────────────────────────────
-
-  Product? _findProduct(String id) =>
-      register.products.where((p) => p.id == id).singleOrNull;
-
-  Future<Product> createProduct(Product product) async {
-    register.createProduct(product);
+  Future<Product> insertProduct(Product product) async {
+    final p = await services.database.createProduct(product);
+    register.insertProduct(p);
     notifyListeners();
-    try {
-      await database.createProduct(product);
-      return product;
-    } catch (e) {
-      register.deleteProduct(product);
-      notifyListeners();
-      rethrow;
-    }
+    return p;
   }
 
-  Future<Product> updateProduct(Product product) async {
-    final previous = _findProduct(product.id!);
-    register.updateProduct(product);
+  Future<Product> modifyProduct(Product product) async {
+    await services.database.updateProduct(product);
+    register.modifyProduct(product);
     notifyListeners();
-    try {
-      await database.updateProduct(product);
-      return product;
-    } catch (e) {
-      if (previous != null) {
-        register.updateProduct(previous);
-        notifyListeners();
-      }
-      rethrow;
-    }
+    return product;
   }
 
-  Future<Product> deleteProduct(Product product) async {
-    final previous = _findProduct(product.id!);
-    register.deleteProduct(product);
+  Future<Product> removeProduct(Product product) async {
+    await services.database.deleteProduct(product);
+    register.removeProduct(product);
     notifyListeners();
-    try {
-      await database.deleteProduct(product);
-      return product;
-    } catch (e) {
-      if (previous != null) {
-        register.updateProduct(previous);
-        notifyListeners();
-      }
-      rethrow;
-    }
+    return product;
   }
-
-  // ── Meeting ─────────────────────────────────────────────────────────────
 
   Future<Meeting> insertMeeting(Meeting meeting) async {
-    final _meeting = Meeting.make(id: const Uuid().v4(), data: meeting.get());
-    await calendar.createMeeting(_meeting);
-    await database.createMeeting(_meeting);
-    schedule.insertMeeting(_meeting);
+    final m = await services.database.createMeeting(meeting);
+    schedule.insertMeeting(m);
     notifyListeners();
-    return _meeting;
+    return m;
   }
 
   Future<Meeting> modifyMeeting(Meeting meeting) async {
+    await services.database.updateMeeting(meeting);
     schedule.modifyMeeting(meeting);
-    await calendar.updateMeeting(meeting);
-    await database.updateMeeting(meeting);
     notifyListeners();
     return meeting;
   }
 
   Future<Meeting> removeMeeting(Meeting meeting) async {
+    await services.database.deleteMeeting(meeting);
     schedule.removeMeeting(meeting);
-    await database.deleteMeeting(meeting);
-    await calendar.deleteMeeting(meeting);
     notifyListeners();
     return meeting;
   }
 
-  // ── Session ─────────────────────────────────────────────────────────────
-
   Future<Session> insertSession(Session session) async {
-    try {
-      final _session = await database.createSession(session);
-      schedule.insertSession(_session);
-      notifyListeners();
-      return _session;
-    } catch (e) {
-      rethrow;
-    }
+    final s = await services.database.createSession(session);
+    schedule.insertSession(s);
+    notifyListeners();
+    return s;
+  }
+
+  Future<Session> modifySession(Session session) async {
+    await services.database.updateSession(session);
+    schedule.modifySession(session);
+    notifyListeners();
+    return session;
+  }
+
+  Future<Session> removeSession(Session session) async {
+    await services.database.deleteSession(session);
+    schedule.removeSession(session);
+    notifyListeners();
+    return session;
   }
 }

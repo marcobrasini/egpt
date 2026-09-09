@@ -10,10 +10,11 @@ class ScheduleSource extends CalendarSources<Meeting> {
   static final instance = ScheduleSource._singleton();
   factory ScheduleSource() => instance;
 
-  ScheduleSource._singleton() : super({
-    CalendarSource<Meeting>(label: meetingsLabel),
-    CalendarSource<Session>(label: sessionsLabel),
-  });
+  ScheduleSource._singleton()
+    : super({
+        CalendarSource<Meeting>(label: meetingsLabel),
+        CalendarSource<Session>(label: sessionsLabel),
+      });
 
   CalendarSource<Meeting> get meetingSource => source(meetingsLabel);
   CalendarSource<Session> get sessionSource =>
@@ -22,15 +23,18 @@ class ScheduleSource extends CalendarSources<Meeting> {
   List<Meeting> get meetings => meetingSource.events;
   List<Session> get sessions => sessionSource.events;
 
+  void setMeetings(List<Meeting> meetings) => meetingSource.set(meetings);
+  void setSessions(List<Session> sessions) => sessionSource.set(sessions);
+
   Meeting meeting(String meetingId) {
     final meeting = meetingSource.find(meetingId);
-    if (meeting == null) throw("No meeting with id: $meetingId");
+    if (meeting == null) throw ("No meeting with id: $meetingId");
     return meeting;
   }
 
   Session session(String sessionId) {
     final session = sessionSource.find(sessionId);
-    if (session == null) throw("No session with id: $sessionId");
+    if (session == null) throw ("No session with id: $sessionId");
     return session;
   }
 
@@ -47,6 +51,7 @@ class ScheduleSource extends CalendarSources<Meeting> {
   Future<Meeting> removeMeeting(Meeting meeting) async {
     for (final m in meetings.where((m) => m.parentId == meeting.id)) {
       m.parentId = meeting.parentId;
+      meetingSource.modifyEvent(m);
     }
     meetingSource.removeEvent(meeting);
     return meeting;

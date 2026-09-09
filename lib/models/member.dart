@@ -1,9 +1,11 @@
 import 'dart:ui';
 import 'package:calendar/calendar.dart';
-import 'package:egpt/models/product.dart';
+import '../sources/source_register.dart';
+import 'product.dart';
 
 
-class Member {
+class Member implements EGPTData {
+  static final register = RegisterSource();
 
   final String? id;
   String name;
@@ -13,7 +15,7 @@ class Member {
   Color color;
   String? email;
   String? phone;
-  //String? photo;
+  String? photo;
 
   Member({
     this.id,
@@ -24,7 +26,7 @@ class Member {
     required this.color,
     this.email,
     this.phone,
-    //this.photo,
+    this.photo,
   });
 
   factory Member.make({
@@ -39,7 +41,7 @@ class Member {
     color: data['color'],
     email: data['email'],
     phone: data['phone'],
-    //photo: data['photo'],
+    photo: data['photo'],
   );
 
   Map<String, dynamic> get() => {
@@ -50,7 +52,7 @@ class Member {
     'color': color,
     'email': email,
     'phone': phone,
-    //'photo': photo,
+    'photo': photo,
   };
 
   Member set(Map<String, dynamic> data) {
@@ -63,11 +65,19 @@ class Member {
   }
 
   final List<Product> products = [];
-  Product product(String productId) => products.firstWhere(
-          (p) => p.id == productId
-  );
+  Product product(String productId) =>
+      products.firstWhere((p) => p.id == productId);
 
+  int get age {
+    final today = Date.now();
+    final age = today.year - birth.year;
+    return (today.month < birth.month
+        || (today.month == birth.month && today.day < birth.day))
+        ? age - 1
+        : age;
+  }
   bool get training =>  products.any((product) => product.isOngoing() && !product.isWarning());
   bool get expiring =>  products.any((product) => product.isWarning());
   bool get finished => !products.any((product) => product.isOngoing());
+
 }

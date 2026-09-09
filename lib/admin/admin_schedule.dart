@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:calendar/calendar.dart';
 import 'package:egpt/models/meeting.dart';
 import 'package:egpt/admin/source_admin.dart';
-import 'package:egpt/admin/schedule/meeting_widget.dart';
-import 'package:egpt/admin/schedule/option_widget.dart';
+import 'package:egpt/admin/widgets/meeting_form.dart';
+import 'package:egpt/admin/widgets/option_form.dart';
 import 'package:provider/provider.dart';
 
 
@@ -28,15 +28,15 @@ class _SchedulePageState extends State<SchedulePage>
   @override
   bool get wantKeepAlive => true;
 
-  Future<MeetingType?> confirm(BuildContext context, Meeting meeting, String action) async {
-    final typeKey = GlobalKey<OptionWidgetState>();
+  Future<MeetingType?> confirm(Meeting meeting, String action) async {
+    final typeForm = GlobalKey<OptionFormState>();
     final lower = action.toLowerCase();
     return await showDialog<MeetingType?>(
       context: context,
       builder: (context) => ChangeNotifierProvider<AdminSource>.value(
         value: admin,
         child: AlertDialog(
-          title: Text("$action appuntamento"),
+          title: Text("$action appuntamento", textAlign: TextAlign.center),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -46,30 +46,30 @@ class _SchedulePageState extends State<SchedulePage>
                       "\nApplica le modifiche a:"),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: OptionWidget(
+                    child: OptionForm(
                       option: MeetingType.exception,
-                      key: typeKey,
+                      key: typeForm,
                     ),
                   ),
                 ],
               ),
               RichText(
-                  textAlign: TextAlign.center,
-                  text: TextSpan(
-                    style: DefaultTextStyle.of(context).style.copyWith(
-                      color: Colors.black,
-                      fontSize: 18.0,
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: DefaultTextStyle.of(context).style.copyWith(
+                    color: Colors.black,
+                    fontSize: 16.0,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: "Vuoi ${lower}re l'appuntamento\ncon "),
+                    TextSpan(
+                      text: meeting.member.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    children: [
-                      TextSpan(
-                          text: "Vuoi ${lower}re l'appuntamento\ncon "),
-                      TextSpan(
-                        text: meeting.member.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const TextSpan(text: "?"),
-                    ],
-                  )
+                    const TextSpan(text: "?"),
+                  ],
+                ),
               ),
             ],
           ),
@@ -77,17 +77,13 @@ class _SchedulePageState extends State<SchedulePage>
           actions: [
             TextButton(
               child: const Text("Annulla"),
-              onPressed: () {
-                Navigator.of(context).pop(null);
-              },
+              onPressed: () => Navigator.of(context).pop(null),
             ),
             TextButton(
               child: Text(action),
-              onPressed: () async {
-                Navigator.of(context).pop(
-                    typeKey.currentState!.meetingType!
-                );
-              },
+              onPressed: () async => Navigator.of(context).pop(
+                  typeForm.currentState!.meetingType
+              ),
             ),
           ],
         ),
@@ -95,36 +91,29 @@ class _SchedulePageState extends State<SchedulePage>
     );
   }
 
-  Future<Meeting?> makeMeeting(BuildContext context, DateTime datetime) async {
-    final meetingWidgetKey = GlobalKey<MeetingWidgetState>();
+  Future<Meeting?> makeMeeting(DateTime datetime) async {
+    final meetingForm = GlobalKey<MeetingFormState>();
     return await showDialog<Meeting?>(
       context: context,
       builder: (context) => ChangeNotifierProvider<AdminSource>.value(
         value: admin,
         child: AlertDialog(
-          title: const Center(child: Text("Nuovo meeting")),
-          content: MeetingWidget(null, key: meetingWidgetKey, datetime: datetime),
+          title: const Text("Nuovo meeting", textAlign: TextAlign.center),
+          content: MeetingForm(null, datetime: datetime, key: meetingForm),
           actionsAlignment: MainAxisAlignment.spaceBetween,
           actions: [
             TextButton(
-              child: const Text("Annulla"),
+              child: const Text("Annulla", style: TextStyle(fontSize: 16)),
               onPressed: () => Navigator.of(context).pop(null),
             ),
             TextButton(
-              child: const Text("Conferma"),
+              child: const Text("Conferma", style: TextStyle(fontSize: 16)),
               onPressed: () async {
                 try {
-                  final data = meetingWidgetKey.currentState?.data;
-                  if (data != null) {
-                    if (context.mounted) {
-                      Navigator.of(context).pop(
-                          await admin.insertMeeting(Meeting.make(data: data))
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Salvataggio riuscito.')),
-                      );
-                    }
-                  }
+                  final data = meetingForm.currentState?.data;
+                  if (data == null) return;
+                  final meeting = await admin.insertMeeting(Meeting.make(data: data));
+                  if (context.mounted) Navigator.of(context).pop(meeting);
                 } catch (e) {
                   if (context.mounted) {
                     Navigator.of(context).pop(null);
@@ -141,43 +130,45 @@ class _SchedulePageState extends State<SchedulePage>
     );
   }
 
-  Future<Meeting?> editMeeting(BuildContext context, Meeting meeting) async {
-    final meetingWidgetKey = GlobalKey<MeetingWidgetState>();
+  Future<Meeting?> editMeeting(Meeting meeting) async {
+    final meetingForm = GlobalKey<MeetingFormState>();
     final isSession = meeting is Session;
     return await showDialog<Meeting?>(
       context: context,
       builder: (context) => ChangeNotifierProvider<AdminSource>.value(
-          value: admin,
-          child: AlertDialog(
-            title: Center(child: Text(isSession ? "Sessione" : "Incontro")),
-            content: MeetingWidget(meeting, key: meetingWidgetKey, enabled: !isSession,),
-            actionsAlignment: MainAxisAlignment.spaceBetween,
-            actions: (isSession) ? null : [
-              TextButton(
-                child: const Text("Cancella"),
-                onPressed: () async {
-                  final deleted = await delMeeting(context, meeting);
-                  Navigator.of(context).pop(deleted);
-                },
-              ),
-              TextButton(
-                child: const Text("Modifica"),
-                onPressed: () async {
-                  final data = meetingWidgetKey.currentState!.data!;
-                  final fixture = Fixture(start: data["start"], stop: data["stop"]);
-                  final updated = await setMeeting(context, meeting, fixture);
-                  if (mounted) Navigator.of(context).pop(updated);
-                },
-              ),
-            ],
-          )
+        value: admin,
+        child: AlertDialog(
+          title: Text(isSession ? "Sessione" : "Appuntamento",
+              textAlign: TextAlign.center
+          ),
+          content: MeetingForm(meeting, key: meetingForm, enabled: !isSession),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: (isSession) ? null : [
+            TextButton(
+              child: const Text("Cancella"),
+              onPressed: () async {
+                final deleted = await delMeeting(meeting);
+                if (context.mounted) Navigator.of(context).pop(deleted);
+              },
+            ),
+            TextButton(
+              child: const Text("Modifica"),
+              onPressed: () async {
+                final data = meetingForm.currentState!.data!;
+                final fixture = Fixture(start: data["start"], stop: data["stop"]);
+                final updated = await setMeeting(meeting, fixture);
+                if (context.mounted) Navigator.of(context).pop(updated);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Future<Meeting?> delMeeting(BuildContext context, Meeting meeting) async {
+  Future<Meeting?> delMeeting(Meeting meeting) async {
     final option = (meeting.isInstance)
-        ? await confirm(context, meeting, "Cancella")
+        ? await confirm(meeting, "Cancella")
         : MeetingType.occurrence;
     switch (option) {
       case MeetingType.occurrence:
@@ -202,9 +193,9 @@ class _SchedulePageState extends State<SchedulePage>
     }
   }
 
-  Future<Meeting?> setMeeting(BuildContext context, Meeting meeting, Fixture fixture) async {
+  Future<Meeting?> setMeeting(Meeting meeting, Fixture fixture) async {
     final option = (meeting.isInstance)
-        ? await confirm(context, meeting, "Modifica")
+        ? await confirm(meeting, "Modifica")
         : MeetingType.occurrence;
     switch (option) {
       case null:
@@ -221,6 +212,7 @@ class _SchedulePageState extends State<SchedulePage>
         }
         return await admin.modifyMeeting(meeting.set(fixture.get()));
       case MeetingType.recurrence:
+        final duration = fixture.duration;
         final difference = fixture.start.difference(meeting.start);
         final recurrence = admin.schedule.meeting(meeting.parentId!);
         if (recurrence.isDeviation) {
@@ -229,10 +221,10 @@ class _SchedulePageState extends State<SchedulePage>
             parent.patternConclude(recurrence.patternUntil!);
             await admin.modifyMeeting(parent);
             await admin.removeMeeting(recurrence);
-            return recurrence.shift(difference);
+            return recurrence.shift(difference, duration);
           }
         }
-        return await admin.modifyMeeting(recurrence.shift(difference));
+        return await admin.modifyMeeting(recurrence.shift(difference, duration));
       case MeetingType.deviation:
         final recurrence = admin.schedule.meeting(meeting.parentId!);
         final deviation = recurrence.deviation(meeting, fixture);
@@ -277,17 +269,23 @@ class _SchedulePageState extends State<SchedulePage>
           ),
         ],
       ),
+      eventConfig: EventConfig(
+        textStyle: TextStyle(color: Colors.white),
+        draggable: (meeting) => meeting is! Session,
+        resizable: (meeting) => meeting is! Session,
+        padding: 2.0,
+      ),
       onFrameTap: (datetime) {
-        makeMeeting(context, datetime);
+        makeMeeting(datetime);
       },
       onEventTap: (meeting) {
-        editMeeting(context, meeting);
+        editMeeting(meeting);
       },
       onEventDragged: (meeting, fixture) {
-        setMeeting(context, meeting, fixture);
+        setMeeting(meeting, fixture);
       },
       onEventResized: (meeting, fixture) {
-        setMeeting(context, meeting, fixture);
+        setMeeting(meeting, fixture);
       },
     );
   }

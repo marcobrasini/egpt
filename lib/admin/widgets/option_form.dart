@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:egpt/models/meeting.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import '../../models/meeting.dart';
 
 
-class OptionWidget extends StatefulWidget {
+class OptionForm extends StatefulWidget {
   final MeetingType option;
   final bool enabled;
-  const OptionWidget({
+  const OptionForm({
     this.option = MeetingType.exception,
     this.enabled = true,
     super.key,
   });
 
   @override
-  State<OptionWidget> createState() => OptionWidgetState();
+  State<OptionForm> createState() => OptionFormState();
 }
 
-class OptionWidgetState extends State<OptionWidget> {
+class OptionFormState extends State<OptionForm> {
   final _meetingType = GlobalKey<FormBuilderState>();
   late MeetingType _type;
   MeetingType get option => _type;
@@ -29,7 +29,6 @@ class OptionWidgetState extends State<OptionWidget> {
     }
     return null;
   }
-
 
   @override
   void initState() {
@@ -44,9 +43,7 @@ class OptionWidgetState extends State<OptionWidget> {
       child: FormBuilderRadioGroup(
         name: 'meetingType',
         enabled: widget.enabled,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-        ),
+        decoration: InputDecoration(border: InputBorder.none),
         options: [
           FormBuilderFieldOption(
             value: MeetingType.exception,

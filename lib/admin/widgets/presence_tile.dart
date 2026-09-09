@@ -1,9 +1,9 @@
-import 'package:egpt/models/meeting.dart';
 import 'package:flutter/material.dart';
+import '../../models/meeting.dart';
 
 
-class PresenceWidget extends StatefulWidget {
-  const PresenceWidget({
+class PresenceTile extends StatefulWidget {
+  const PresenceTile({
     super.key,
     required this.meeting,
     required this.onChanged,
@@ -14,30 +14,26 @@ class PresenceWidget extends StatefulWidget {
   final bool? presence;
 
   @override
-  State<PresenceWidget> createState() => _PresenceWidgetState();
+  State<PresenceTile> createState() => _PresenceTileState();
 }
 
-class _PresenceWidgetState extends State<PresenceWidget> {
+class _PresenceTileState extends State<PresenceTile> {
   bool? presence;
 
   Widget _radioButton(String label, bool value, Color color) {
     final selected = (presence == value);
-    return SizedBox(
-      width: 120,
-      height: 32,
-      child: OutlinedButton(
-          onPressed: () => setState(() {
-            presence = selected ? null : value;
-            widget.onChanged(presence);
-          }),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: selected ? Colors.black : color,
-            backgroundColor: selected ? color : Colors.transparent,
-            side: BorderSide(color: color),
-            shape: const StadiumBorder(),
-          ),
-          child: Text(label),
-      ),
+    return OutlinedButton(
+        onPressed: () => setState(() {
+          presence = selected ? null : value;
+          widget.onChanged(presence);
+        }),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: selected ? Colors.black : color,
+          backgroundColor: selected ? color : Colors.transparent,
+          side: BorderSide(color: color),
+          shape: const StadiumBorder(),
+        ),
+        child: Text(label),
     );
   }
 

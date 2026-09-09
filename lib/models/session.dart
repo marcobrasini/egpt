@@ -1,13 +1,14 @@
-import 'package:egpt/models/meeting.dart';
+import '../sources/source_register.dart';
+import 'meeting.dart';
 
 
-class Session extends Meeting {
+class Session extends Meeting implements EGPTData {
+  static final register = RegisterSource();
 
   final bool presence;
 
   Session({
     required super.id,
-    required super.member,
     required super.product,
     required super.start,
     required super.stop,
@@ -22,16 +23,31 @@ class Session extends Meeting {
     required Map<String, dynamic> data,
   }) => Session(
     id: id,
-    member: data['member'],
     product: data['product'],
     start: data['start'],
     stop: data['stop'],
     presence: data['presence'],
   );
 
-  factory Session.build({required Meeting meeting, required bool presence}) => Session(
+  factory Session.build({
+    String? id,
+    required String productId,
+    required DateTime start,
+    required DateTime stop,
+    required bool presence,
+  }) => Session(
+    id: id,
+    product: register.product(productId),
+    start: start,
+    stop: stop,
+    presence: presence,
+  );
+
+  factory Session.from({
+    required Meeting meeting,
+    required bool presence,
+  }) => Session(
     id: meeting.id,
-    member: meeting.member,
     product: meeting.product,
     start: meeting.start,
     stop: meeting.stop,

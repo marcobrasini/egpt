@@ -1,11 +1,11 @@
-import 'package:egpt/admin/admin_statistic.dart';
-import 'package:egpt/admin/presence/presence_widget.dart';
-import 'package:egpt/models/meeting.dart';
-import 'package:egpt/models/session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:calendar/calendar.dart';
-import 'package:egpt/admin/source_admin.dart';
+import 'widgets/presence_tile.dart';
+import '../models/meeting.dart';
+import '../models/session.dart';
+import 'admin_statistic.dart';
+import 'source_admin.dart';
 
 
 class PresencePage extends StatefulWidget {
@@ -20,8 +20,6 @@ class _PresencePageState extends State<PresencePage>
 
   final Map<ValueKey, bool?> _presences = {};
   late final AdminSource admin;
-  late DateTime lastDate;
-  late DateTime nextDate;
 
   ValueKey<Meeting> _key(Meeting meeting) => ValueKey<Meeting>(meeting);
 
@@ -41,25 +39,21 @@ class _PresencePageState extends State<PresencePage>
   }
 
   Future<Session?> addSession(BuildContext context, Meeting meeting) async {
-    admin.schedule.meetings.forEach((m) => print(m.get()));
-    admin.schedule.sessions.forEach((m) => print(m.get()));
     final presence = _presences[_key(meeting)];
     if (presence == null)  return null;
-    final session = Session.build(meeting: meeting, presence: presence);
+    final session = Session.from(meeting: meeting, presence: presence);
     return await admin.insertSession(session);
   }
 
-  @override
-  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    final week = Week.now();
-    lastDate = week.weekStart;
-    nextDate = week.weekEnd;
     admin = context.read<AdminSource>();
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
@@ -67,22 +61,30 @@ class _PresencePageState extends State<PresencePage>
     final scheme = Theme.of(context).colorScheme;
     return CustomScrollView(
       slivers: [
-        AdminStatistic(),
+        // AdminStatistic(),
+        SliverAppBar(
+          automaticallyImplyActions: false,
+          automaticallyImplyLeading: false,
+          title:  const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child:Text("Presenze", style: TextStyle(fontSize: 24.0)),
+          ),
+        ),
         SliverFillRemaining(
           child: Agenda<Meeting>(
             source: admin.schedule.meetingSource,
             view: CalendarView.weekly,
-            scroll: CalendarScroll.sequential,
+            scroll: CalendarScroll.individual,
             negligibleAgenda: true,
             fixLastAnchor: false,
-            fixNextAnchor: false,
+            fixNextAnchor: true,
             centredView: false,
             lastAnchorBuilder: (context) => Container(
               color: scheme.inversePrimary,
               child: const Padding(
-                padding: EdgeInsets.all(8.0),
+                padding: EdgeInsets.all(16.0),
                 child: Center(
-                  child: Text("Attenzione: ci sono vecchie presenze non registrate."),
+                  child: Text("Attenzione: ci sono presenze non registrate."),
                 ),
               ),
             ),
@@ -121,7 +123,7 @@ class _PresencePageState extends State<PresencePage>
                 )
               ],
             ),
-            eventBuilder: (context, meeting) => PresenceWidget(
+            eventBuilder: (context, meeting) => PresenceTile(
               meeting: meeting,
               presence: _presences[_key(meeting)],
               onChanged: (value) => _presences[_key(meeting)] = value,
@@ -135,10 +137,6 @@ class _PresencePageState extends State<PresencePage>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.delete,
-                        color: scheme.onTertiaryContainer,
-                        size: 24,
-                      ),
                       Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: Text("Cancella",
@@ -147,7 +145,11 @@ class _PresencePageState extends State<PresencePage>
                             fontSize: 16.0,
                           ),
                         ),
-                      )
+                      ),
+                      Icon(Icons.delete,
+                        color: scheme.onTertiaryContainer,
+                        size: 24,
+                      ),
                     ],
                   ),
                 ),
@@ -162,6 +164,10 @@ class _PresencePageState extends State<PresencePage>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      Icon(Icons.archive,
+                        color: scheme.onSecondaryContainer,
+                        size: 24.0,
+                      ),
                       Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: Text("Archivia",
@@ -170,10 +176,6 @@ class _PresencePageState extends State<PresencePage>
                             fontSize: 16,
                           ),
                         ),
-                      ),
-                      Icon(Icons.archive,
-                        color: scheme.onSecondaryContainer,
-                        size: 24.0,
                       ),
                     ],
                   ),
@@ -185,7 +187,7 @@ class _PresencePageState extends State<PresencePage>
             },
             onEventSwipedRight: (meeting, fixture) async {
               final session = await addSession(context, meeting);
-              if (session != null) delMeeting(context, meeting);
+              if (session != null) await delMeeting(context, meeting);
             },
             swipeableEvent: true,
           ),

@@ -1,76 +1,62 @@
-import 'package:egpt/services/egpt_services.dart';
-import 'package:egpt/services/providers/google_provider.dart';
-import 'package:egpt/services/supabase_service.dart';
+import 'package:egpt/services/powersync_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:egpt/admin/admin_main.dart';
-import 'package:egpt/user/main_user.dart';
-import 'package:egpt/login.dart';
-import 'package:egpt/auth.dart';
+import 'services/api/auth_service.dart';
+import 'services/supabase_service.dart';
+import 'services/egpt_services.dart';
+import 'auth.dart';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await dotenv.load(fileName: '.env');
   await Supabase.initialize(
-    url: "https://nuxbtafdllyeeiozexzi.supabase.co",
-    anonKey: "sb_publishable_VC7yPrSbOe9Bl6oJIKi3lA_K2PIQ0iW",
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
   final supabase = SupabaseService();
-  final google = GoogleService();
+  final database = PowerSyncService(supabase);
+  await database.open();
 
   runApp(EGPTApp(
     services: EGPTServices(
       auth: supabase,
-      database: supabase,
-      calendar: google.calendar,
-      providers: [google],
+      database: database,
+      providers: [],
     ),
   ));
 }
 
-class EGPTApp extends StatefulWidget {
+
+class EGPTApp extends StatelessWidget {
   const EGPTApp({
     super.key,
-    required this.services
+    required this.services,
   });
 
   final EGPTServices services;
 
   @override
-  State<EGPTApp> createState() => _EGPTAppState();
-}
-
-class _EGPTAppState extends State<EGPTApp> {
-  final _navigatorKey = GlobalKey<NavigatorState>();
-
-  @override
-  void initState() {
-    super.initState();
-    Supabase.instance.client.auth.onAuthStateChange.listen((state) {
-      if (state.event == AuthChangeEvent.signedOut) {
-        _navigatorKey.currentState
-            ?.pushNamedAndRemoveUntil("/login", (_) => false);
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Provider<EGPTServices>.value(
-      value: widget.services,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthService>.value(value: services.auth),
+        Provider<EGPTServices>.value(value: services),
+      ],
       child: MaterialApp(
-        localizationsDelegates: [
+        localizationsDelegates: const [
           GlobalWidgetsLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: [
-          const Locale('it', 'IT'),
-          const Locale('en', 'US'),
+        supportedLocales: const [
+          Locale('it', 'IT'),
+          Locale('en', 'US'),
         ],
         locale: const Locale('it', 'IT'),
         theme: ThemeData(
@@ -80,14 +66,7 @@ class _EGPTAppState extends State<EGPTApp> {
             brightness: Brightness.light,
           ),
         ),
-        navigatorKey: _navigatorKey,
-        initialRoute: "/",
-        routes: {
-          "/": (context) => const AuthGate(),
-          "/login": (context) => LoginPage(),
-          "/admin": (context) => AdminPage(),
-          "/user": (context) => UserPage(),
-        },
+        home: const AuthGate(),
       ),
     );
   }

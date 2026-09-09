@@ -1,32 +1,39 @@
 import 'dart:math';
-import 'package:calendar/calendar.dart';
+import 'package:egpt/models/meeting.dart';
+import 'package:egpt/models/session.dart';
 import 'package:flutter/material.dart';
+import 'package:calendar/calendar.dart';
+// import 'package:collection/collection.dart';
+import '../sources/source_register.dart';
+import '../sources/source_schedule.dart';
+import 'member.dart';
 
 
-class Product {
-
+class Product implements EGPTData {
+  static final register = RegisterSource();
+  static final schedule = ScheduleSource();
   static const _warning = 10;
 
   final String? id;
-  final String memberId;
+  final Member member;
   String summary;
   int length;
   Date start;
   Date stop;
-  int todo;
-  int redo;
-  int done;
+  Iterable<Session> get sessions => schedule.sessions.where((s) => s.product == this);
+  Iterable<Meeting> get meetings => schedule.meetings.where((m) => m.product == this);
+
+  int get todo => meetings.fold(0, (sum, m) => sum + m.expand(start, stop).length);
+  int get redo => sessions.where((s) => !s.presence).length;
+  int get done => sessions.where((s) => s.presence).length;
 
   Product({
     this.id,
-    required this.memberId,
+    required this.member,
     required this.summary,
     required this.length,
     required this.start,
     required this.stop,
-    this.todo = 0,
-    this.redo = 0,
-    this.done = 0,
   });
 
   factory Product.make({
@@ -34,15 +41,31 @@ class Product {
     required Map<String, dynamic> data
   }) => Product(
     id: id,
-    memberId: data['memberId'],
+    member: data['member'],
     summary: data['summary'],
     length: data['length'],
     start: data['start'],
     stop: data['stop'],
   );
 
+  factory Product.build({
+    required String id,
+    required String memberId,
+    required String summary,
+    required int length,
+    required Date start,
+    required Date stop,
+  }) => Product(
+    id: id,
+    member: register.member(memberId),
+    summary: summary,
+    length: length,
+    start: start,
+    stop: stop,
+  );
+
   Map<String, dynamic> get() => {
-    'memberId': memberId,
+    'member': member,
     'summary': summary,
     'length': length,
     'start': start,

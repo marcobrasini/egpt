@@ -1,40 +1,29 @@
 import 'package:flutter/material.dart';
-import 'services/supabase_service.dart';
+import 'package:provider/provider.dart';
+import 'services/api/auth_service.dart';
+import 'services/egpt_services.dart';
+import 'admin/admin_main.dart';
+import 'user/user_main.dart';
+import 'login.dart';
 
 
-class AuthGate extends StatefulWidget {
+class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
-  @override
-  State<AuthGate> createState() => _AuthGateState();
-}
-
-class _AuthGateState extends State<AuthGate> {
-  final _supabase = SupabaseService();
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _route());
-  }
-
-  Future<void> _route() async {
-    final navigator = Navigator.of(context);
-    if (_supabase.session == null) {
-      navigator.pushReplacementNamed("/login");
-      return;
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    if (!auth.initialized) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
-    if (!mounted) return;
-    navigator.pushReplacementNamed(
-        _supabase.privileged == true
-            ? "/admin"
-            : "/user"
-    );
+    if (auth.session == null) {
+      context.read<EGPTServices>().database.reset();
+      return const LoginPage();
+    }
+    return auth.privileged
+        ? const AdminPage()
+        : const UserPage();
   }
-
-  @override
-  Widget build(BuildContext context) => const Scaffold(
-      body: Center(
-          child: CircularProgressIndicator()
-      )
-  );
 }

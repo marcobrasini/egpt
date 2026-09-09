@@ -1,10 +1,10 @@
-import 'package:egpt/admin/admin_presence.dart';
-import 'package:egpt/admin/register/widget_register.dart';
-import 'package:egpt/services/egpt_services.dart';
-import 'package:egpt/admin/admin_schedule.dart';
-import 'package:egpt/admin/source_admin.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/egpt_services.dart';
+import 'admin_register.dart';
+import 'admin_schedule.dart';
+import 'admin_presence.dart';
+import 'source_admin.dart';
 
 
 class AdminPage extends StatefulWidget {
@@ -19,9 +19,6 @@ class _AdminPageState extends State<AdminPage> {
 
   void _logout() async {
     await admin.services.signOut();
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil("/", (_) => false);
-    }
   }
 
   Widget mainDrawer(BuildContext context) => Drawer(
@@ -78,35 +75,41 @@ class _AdminPageState extends State<AdminPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
+    return ChangeNotifierProvider<AdminSource>.value(
       value: admin,
-      child: DefaultTabController(
-        length: 3,
-        initialIndex: 1,
-        child: Scaffold(
-          drawer: mainDrawer(context),
-          appBar: AppBar(
-            centerTitle: true,
-            title: const Text("Egpt",
-              style: TextStyle(fontSize: 28),
+      child: Builder(builder: (context) {
+        final admin = context.watch<AdminSource>();
+        return (admin.isLoading)
+          ? const Center(child: CircularProgressIndicator.adaptive())
+          : DefaultTabController(
+            length: 3,
+            initialIndex: 1,
+            child: Scaffold(
+              drawer: mainDrawer(context),
+              appBar: AppBar(
+                centerTitle: true,
+                title: const Text("Egpt",
+                  style: TextStyle(fontSize: 28),
+                ),
+              ),
+              body: const TabBarView(
+                physics: NeverScrollableScrollPhysics(),
+                children: [
+                  Center(child: SchedulePage()),
+                  Center(child: PresencePage()),
+                  Center(child: RegisterPage()),
+                ],
+              ),
+              bottomNavigationBar: const TabBar(
+                tabs: [
+                  Tab(icon: Icon(Icons.calendar_today)),
+                  Tab(icon: Icon(Icons.home)),
+                  Tab(icon: Icon(Icons.person)),
+                ],
+              ),
             ),
-          ),
-          body: const TabBarView(
-            physics: NeverScrollableScrollPhysics(),
-            children: [
-              SchedulePage(),
-              PresencePage(),
-              RegisterWidget(),
-            ],
-          ),
-          bottomNavigationBar: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.calendar_today)),
-              Tab(icon: Icon(Icons.home)),
-              Tab(icon: Icon(Icons.person)),
-            ],
-          ),
-        ),
+          );
+        }
       ),
     );
   }

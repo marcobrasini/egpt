@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:egpt/admin/admin_training.dart';
+import 'package:egpt/admin/source_admin.dart';
+import 'package:egpt/admin/widgets/member_page.dart';
+import 'package:egpt/admin/widgets/member_tile.dart';
+import 'package:egpt/admin/widgets/member_form.dart';
 import 'package:egpt/models/member.dart';
-import 'package:egpt/admin/register/member_list.dart';
-import 'package:egpt/admin/widgets/member_widget.dart';
-import 'package:egpt/admin/source_register.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 
@@ -13,72 +15,129 @@ class RegisterPage extends StatefulWidget {
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
-
 class _RegisterPageState extends State<RegisterPage> {
+  final _searchController = TextEditingController();
+  String _pattern = "";
+
+  List<Member> _filter(List<Member> members) {
+    if (_pattern.isEmpty) return members;
+    return members.where((member) {
+      return member.name.toLowerCase().contains(_pattern.toLowerCase());
+    }).toList();
+  }
 
   Future<void> _addMember(BuildContext context) async {
-    final register = context.read<RegisterSource>();
-    final memberWidgetKey = GlobalKey<MemberWidgetState>();
-    final member = await showDialog<Member?>(
+    final admin = context.read<AdminSource>();
+    final form = GlobalKey<MemberFormState>();
+    await showDialog<Member>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Center(child: Text("Nuovo Membro")),
-          content: MemberWidget(null, key: memberWidgetKey),
-          actions: [
-            TextButton(
-              child: const Text("Registra"),
-              onPressed: () async {
-                final data = memberWidgetKey.currentState?.data;
-                if (data == null) {
-                  Navigator.of(context).pop(null);
-                } else {
-                  Navigator.of(context).pop(
-                    Member.make(data: data)
-                  );
-                }
-              },
-            ),
-          ],
-        );
-      },
+      builder: (context) => AlertDialog(
+        title: const Center(child: Text('Nuovo Membro')),
+        content: MemberForm(null, key: form),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton(
+            child: const Text('Annulla', style: TextStyle(fontSize: 16)),
+            onPressed: () => Navigator.of(context).pop(null),
+          ),
+          TextButton(
+            child: const Text('Conferma', style: TextStyle(fontSize: 16)),
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              final data = form.currentState?.data;
+              if (data != null) {
+                final member = await admin.insertMember(
+                    Member.make(data: data));
+                navigator.pop(member);
+              }
+            },
+          ),
+        ],
+      ),
     );
-    if (!context.mounted) return;
-    if (member == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registrazione fallita.')),
-      );
-    } else {
-      if (register.members.any((m) => m.name == member.name)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Nome già esistente')),
-        );
-      } else {
-        await register.createMember(member);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registrazione riuscita.')),
-        );
-      }
-    }
+  }
+
+  Future<void> _setMember(BuildContext context, Member member) async {
+    final admin = context.read<AdminSource>();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider<AdminSource>.value(
+          value: admin,
+          child: AdminTraining(member),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Membri'),
-        actions: [
-          IconButton(
-              onPressed: () => _addMember(context),
-              icon: Icon(Icons.person_add)
-          )
-        ],
-      ),
-      body: Padding(
-          padding: EdgeInsets.all(16),
-          child: MemberList(),
-      ),
+    context.watch<AdminSource>();
+    final scheme = Theme.of(context).colorScheme;
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          floating: true,
+          snap: true,
+          automaticallyImplyLeading: false,
+          automaticallyImplyActions: false,
+          centerTitle: true,
+          title: Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsetsGeometry.all(12.0),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => setState(() {
+                      _pattern = value;
+                    }),
+                    showCursor: true,
+                    decoration: InputDecoration(
+                      labelText: 'Cerca',
+                      icon: Icon(Icons.search),
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.person_add),
+                onPressed: () => _addMember(context),
+              )
+            ],
+          ),
+        ),
+        Consumer<AdminSource>(
+          builder: (context, source, _) {
+            final members = _filter(source.register.members);
+            if (members.isEmpty) {
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(_pattern.isEmpty
+                      ? "Nessun membro"
+                      : "Nessuna corrispondenza",
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      color: scheme.outline,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return SliverList.builder(
+              itemCount: members.length,
+              itemBuilder: (context, index) {
+                return MemberTile(
+                  members[index],
+                  setMember: () => _setMember(context, members[index]),
+                  delMember: () {},
+                );
+              },
+            );
+          },
+        ),
+      ],
     );
   }
-
 }

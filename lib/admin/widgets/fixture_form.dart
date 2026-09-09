@@ -1,33 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:calendar/calendar.dart';
-import 'package:egpt/models/fixture.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
+import 'package:calendar/calendar.dart';
+import '../../models/fixture.dart';
+import '../../typedef.dart';
 
 
-class FixtureWidget extends StatefulWidget {
+class FixtureForm extends StatefulWidget {
   final Fixture? fixture;
   final bool enabled;
-  // final bool fixDate;
 
-  const FixtureWidget(this.fixture, {
+  const FixtureForm(this.fixture, {
     this.enabled = true,
-    // this.fixDate = false,
     super.key
   });
 
   @override
-  State<FixtureWidget> createState() => FixtureWidgetState();
+  State<FixtureForm> createState() => FixtureFormState();
 }
 
-class FixtureWidgetState extends State<FixtureWidget> {
+class FixtureFormState extends State<FixtureForm> {
   final _fixtureForm = GlobalKey<FormBuilderState>();
+  bool get _editing => widget.enabled || widget.fixture == null;
 
-  Map<String, dynamic>? get data {
+  DataMap? get data {
     final form = _fixtureForm.currentState;
     if (form?.saveAndValidate() ?? false) {
-      final data = Map<String, dynamic>.from(form!.value);
+      final data = DataMap.from(form!.value);
       return {
         "start": (data["date"] as Date) & (data["from"] as Time),
         "stop": (data["date"] as Date) & (data["to"] as Time),
@@ -36,20 +35,15 @@ class FixtureWidgetState extends State<FixtureWidget> {
     return null;
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
   Widget dateForm() => FormBuilderDateTimePicker(
     name: "date",
-    format: DateFormat('dd/MM/yyyy'),
-    inputType: InputType.date,
+    enabled: _editing,
     decoration: const InputDecoration(
       labelText: "Data",
       icon: Icon(Icons.calendar_month),
     ),
-    enabled: widget.enabled,// && !widget.fixDate,
+    inputType: InputType.date,
+    format: DateFormat('dd/MM/yyyy'),
     initialValue: widget.fixture?.date,
     valueTransformer: (value) => value!.date,
     validator: FormBuilderValidators.compose([
@@ -58,14 +52,23 @@ class FixtureWidgetState extends State<FixtureWidget> {
     ]),
   );
 
+  void _defaultTo(DateTime value) {
+    final form = _fixtureForm.currentState;
+    if (form != null) {
+      final to = form.fields["to"]?.value;
+      if (to == null || to.isBefore(value)) {
+        form.fields["to"]?.didChange(value.add(Duration(hours: 1)));
+      }
+    }
+  }
   Widget fromForm() => FormBuilderDateTimePicker(
     name: "from",
-    inputType: InputType.time,
+    enabled: _editing,
     decoration: const InputDecoration(
       labelText: "dalle",
       icon: Icon(Icons.schedule),
     ),
-    enabled: widget.enabled,
+    inputType: InputType.time,
     initialValue: widget.fixture?.from,
     valueTransformer: (value) => value!.time,
     validator: FormBuilderValidators.compose([
@@ -73,23 +76,28 @@ class FixtureWidgetState extends State<FixtureWidget> {
       FormBuilderValidators.dateTime(),
     ]),
     onChanged: (value) {
-      final to = _fixtureForm.currentState!.fields["to"]?.value;
-      if (to == null || to.isBefore(value)) {
-        _fixtureForm.currentState!.fields["to"]?.didChange(
-            value!.add(Duration(hours: 1))
-        );
-      }
+      if (value == null) return;
+      _defaultTo(value);
     },
   );
 
+  void _defaultFrom(DateTime value) {
+    final form = _fixtureForm.currentState;
+    if (form != null) {
+      final from = form.fields["from"]?.value;
+      if (from == null || from.isAfter(value)) {
+        form.fields["from"]?.didChange(value.add(Duration(hours: -1)));
+      }
+    }
+  }
   Widget toForm() => FormBuilderDateTimePicker(
     name: "to",
+    enabled: _editing,
     inputType: InputType.time,
     decoration: const InputDecoration(
       labelText: "alle",
       icon: Icon(Icons.schedule),
     ),
-    enabled: widget.enabled,
     initialValue: widget.fixture?.to,
     valueTransformer: (value) => value!.time,
     validator: FormBuilderValidators.compose([
@@ -97,12 +105,8 @@ class FixtureWidgetState extends State<FixtureWidget> {
       FormBuilderValidators.dateTime(),
     ]),
     onChanged: (value) {
-      final from = _fixtureForm.currentState!.fields["from"]?.value;
-      if (from == null || from.isAfter(value)) {
-        _fixtureForm.currentState!.fields["from"]?.didChange(
-            value!.add(Duration(hours: -1))
-        );
-      }
+      if (value == null) return;
+      _defaultFrom(value);
     },
   );
 
@@ -112,6 +116,8 @@ class FixtureWidgetState extends State<FixtureWidget> {
       key: _fixtureForm,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           dateForm(),
           Row(

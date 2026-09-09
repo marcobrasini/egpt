@@ -1,19 +1,19 @@
-import 'package:egpt/admin/source_register.dart';
 import 'package:calendar/calendar.dart';
-import 'package:egpt/models/member.dart';
-import 'package:egpt/models/product.dart';
-import 'package:egpt/models/fixture.dart';
+import '../sources/source_register.dart';
+import 'fixture.dart';
+import 'product.dart';
+import 'member.dart';
 
 
 typedef MeetingType = EventType;
 
 
-class Meeting extends Event {
+class Meeting extends Event implements EGPTData{
   static final register = RegisterSource();
 
   final Product product;
-  final Member member;
 
+  Member get member => product.member;
   Date get date => start.date;
   Time get from => start.time;
   Time get to => stop.time;
@@ -25,7 +25,8 @@ class Meeting extends Event {
 
   Set<DateTime>? get exceptionsList => pattern?.exceptions;
   void exceptionInsert(DateTime datetime) => pattern?.exceptions.add(datetime);
-  void exceptionRemove(DateTime datetime) => pattern?.exceptions.remove(datetime);
+  void exceptionRemove(DateTime datetime) =>
+      pattern?.exceptions.remove(datetime);
   void exceptionShift(Duration duration) {
     final shifted = pattern!.exceptions.map((e) => e.add(duration)).toSet();
     pattern!.exceptions = shifted;
@@ -33,54 +34,45 @@ class Meeting extends Event {
 
   Meeting({
     super.id,
-    required this.member,
     required this.product,
     required super.start,
     required DateTime super.stop,
     super.pattern,
     super.parentId,
   }) : super(
-    subject: member.name,
-    color: member.color,
+    subject: product.member.name,
+    color: product.member.color,
   );
 
   factory Meeting.make({
-      String? id,
-      required Map<String, dynamic> data,
+    String? id,
+    required Map<String, dynamic> data,
   }) => Meeting(
-      id: id,
-      member: data['member'],
-      product: data['product'],
-      start: data['start'],
-      stop: data['stop'],
-      pattern: data['pattern'],
-      parentId: data['parentId'],    
+    id: id,
+    product: data['product'],
+    start: data['start'],
+    stop: data['stop'],
+    pattern: data['pattern'],
+    parentId: data['parentId'],
   );
 
   factory Meeting.build({
     required String id,
-    required String memberId,
     required String productId,
     required DateTime start,
     required DateTime stop,
     String? parentId,
     String? patternRule,
-  }) {
-    final member = register.member(memberId);
-    final product = member.products.singleWhere((p) => p.id == productId);
-    final pattern = (patternRule != null)
+  }) => Meeting(
+    id: id,
+    product: register.products.singleWhere((p) => p.id == productId),
+    start: start,
+    stop: stop,
+    parentId: parentId,
+    pattern: (patternRule != null)
         ? Pattern.fromICSString(patternRule)
-        : null;
-    return Meeting(
-      id: id,
-      member: member,
-      product: product,
-      start: start,
-      stop: stop,
-      pattern: pattern,
-      parentId: parentId,
-    );
-  }
+        : null,
+  );
 
   Meeting copy() => Meeting.make(id: id, data: get());
 
@@ -88,7 +80,6 @@ class Meeting extends Event {
   Map<String, dynamic> get() => {
     ...super.get(),
     "product": product,
-    "member": member,
   };
 
   @override
@@ -97,11 +88,12 @@ class Meeting extends Event {
     return this;
   }
 
-  Meeting shift(Duration duration) {
-    if (pattern != null) exceptionShift(duration);
+  Meeting shift(Duration difference, Duration? duration) {
+    if (pattern != null) exceptionShift(difference);
+    final shifted = start.add(difference);
     return set({
-        "start": start.add(duration),
-        "stop": stop.add(duration),
+        "start": shifted,
+        "stop": shifted.add(duration ?? this.duration),
     });
   }
 
@@ -120,7 +112,6 @@ class Meeting extends Event {
     return ((fixture?.date ?? meeting.date) % date) % 7 == 0
         && (fixture?.from ?? meeting.from) == from
         && (fixture?.to ?? meeting.to) == to
-        && meeting.member == member
         && meeting.product == product;
   }
 
@@ -131,7 +122,6 @@ class Meeting extends Event {
     return ((fixture?.date ?? meeting.date) % until) == 0
         && (fixture?.from ?? meeting.from) == from
         && (fixture?.to ?? meeting.to) == to
-        && meeting.member == member
         && meeting.product == product;
   }
 
