@@ -8,7 +8,6 @@ import '../models/member.dart';
 import '../models/product.dart';
 import 'source_admin.dart';
 
-
 class AdminTraining extends StatefulWidget {
   const AdminTraining(this.member, {super.key});
 
@@ -19,6 +18,7 @@ class AdminTraining extends StatefulWidget {
 }
 
 class _AdminTrainingState extends State<AdminTraining> {
+  late final AdminSource admin;
 
   Future<void> _addProduct(BuildContext context) async {
     final admin = context.read<AdminSource>();
@@ -125,23 +125,34 @@ class _AdminTrainingState extends State<AdminTraining> {
     );
   }
 
-  Widget drawer() => Drawer(
-    width: double.infinity,
-    child: SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: SingleChildScrollView(
-          child: MemberPage(widget.member),
-        ),
-      ),
-    ),
-  );
+  @override
+  void initState() {
+    super.initState();
+    admin = context.read<AdminSource>();
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final member = admin.register.memberSource[widget.member.id!];
+    if (member == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).maybePop();
+      });
+      return const SizedBox.shrink();
+    }
     return Scaffold(
-      endDrawer: drawer(),
+      endDrawer: Drawer(
+        width: double.infinity,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: SingleChildScrollView(
+                child: MemberPage(widget.member)
+            ),
+          ),
+        ),
+      ),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(

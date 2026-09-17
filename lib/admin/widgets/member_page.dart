@@ -1,10 +1,10 @@
+import 'package:egpt/sources/source_register.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/member.dart';
 import '../source_admin.dart';
 import 'member_form.dart';
 import 'delete_form.dart';
-
 
 class MemberPage extends StatefulWidget {
   const MemberPage(this.member, {super.key});
@@ -16,10 +16,11 @@ class MemberPage extends StatefulWidget {
 }
 
 class _MemberPageState extends State<MemberPage> {
+  late final AdminSource admin;
+  late final GlobalKey<MemberFormState> memberForm;
   bool _editing = false;
 
   Future<void> _delMember(BuildContext context, Member member) async {
-    final admin = context.read<AdminSource>();
     final form = GlobalKey<DeleteFormState>();
     await showDialog<Member>(
       context: context,
@@ -30,8 +31,8 @@ class _MemberPageState extends State<MemberPage> {
           children: [
             Text(
               "Stai eliminando il membro '${member.name}' con tutti "
-              "gli abbonamenti e tutte le sessioni di allenamento associate."
-              "\nVuoi rimuovere il membro?",
+                  "gli abbonamenti e tutte le sessioni di allenamento associate."
+                  "\nVuoi rimuovere il membro?",
             ),
             DeleteForm(
               "egpt/${widget.member.name}".replaceAll(" ", ""),
@@ -65,12 +66,27 @@ class _MemberPageState extends State<MemberPage> {
     );
   }
 
+  Future<void> _setMember(BuildContext context, Member member) async {
+    final data = memberForm.currentState?.data;
+    if (data != null) {
+      admin.modifyMember(widget.member.set(data));
+      admin.register.notifyMembers();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    admin = context.read<AdminSource>();
+    memberForm = GlobalKey<MemberFormState>();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final admin = context.read<AdminSource>();
     final scheme = Theme.of(context).colorScheme;
-    final memberForm = GlobalKey<MemberFormState>();
     return Column(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Stack(
           alignment: AlignmentDirectional.topEnd,
@@ -79,15 +95,10 @@ class _MemberPageState extends State<MemberPage> {
             IconButton(
               icon: Icon(_editing ? Icons.save : Icons.edit),
               onPressed: () => setState(() {
-                if (_editing) {
-                  final data = memberForm.currentState?.data;
-                  if (data != null) {
-                    admin.modifyMember(widget.member.set(data));
-                  }
-                }
+                if (_editing) _setMember(context, widget.member);
                 _editing = !_editing;
               }),
-            )
+            ),
           ],
         ),
         Padding(

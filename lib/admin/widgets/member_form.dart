@@ -35,7 +35,7 @@ class MemberFormState extends State<MemberForm> {
 
   Color get _color =>
       _memberForm.currentState?.fields["color"]?.value ??
-      Theme.of(context).primaryColor;
+      (widget.member?.color ?? Theme.of(context).primaryColor);
 
   String get _name => _memberForm.currentState?.fields["name"]?.value ?? "";
 

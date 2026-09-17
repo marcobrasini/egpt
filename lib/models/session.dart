@@ -1,8 +1,9 @@
 import '../sources/source_register.dart';
+import '../typedef.dart';
 import 'meeting.dart';
 
 
-class Session extends Meeting implements EGPTData {
+class Session extends Meeting implements EGPTItem {
   static final register = RegisterSource();
 
   final bool presence;

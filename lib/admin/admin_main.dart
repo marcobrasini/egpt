@@ -26,34 +26,22 @@ class _AdminPageState extends State<AdminPage> {
       padding: EdgeInsets.zero,
       children: [
         DrawerHeader(
-          decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor,
-          ),
+          decoration: BoxDecoration(color: Theme.of(context).primaryColor),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(
                 'Amministratore',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 24),
               ),
             ],
           ),
         ),
         // Voce Logout
         ListTile(
-          leading: const Icon(
-              Icons.logout,
-              color: Colors.red
-          ),
-          title: const Text('Logout',
-            style: TextStyle(
-              color: Colors.red,
-            ),
-          ),
+          leading: const Icon(Icons.logout, color: Colors.red),
+          title: const Text('Logout', style: TextStyle(color: Colors.red)),
           onTap: () => _logout(),
         ),
       ],
@@ -77,26 +65,25 @@ class _AdminPageState extends State<AdminPage> {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<AdminSource>.value(
       value: admin,
-      child: Builder(builder: (context) {
-        final admin = context.watch<AdminSource>();
-        return (admin.isLoading)
-          ? const Center(child: CircularProgressIndicator.adaptive())
-          : DefaultTabController(
+      child: Builder(
+        builder: (context) {
+          final loading = context.select((AdminSource admin) => admin.loading);
+          return DefaultTabController(
             length: 3,
             initialIndex: 1,
             child: Scaffold(
               drawer: mainDrawer(context),
               appBar: AppBar(
                 centerTitle: true,
-                title: const Text("Egpt",
-                  style: TextStyle(fontSize: 28),
-                ),
+                title: const Text("EGPT", style: TextStyle(fontSize: 28)),
               ),
-              body: const TabBarView(
+              body: loading
+                  ? const Center(child: CircularProgressIndicator.adaptive())
+                  : const TabBarView(
                 physics: NeverScrollableScrollPhysics(),
                 children: [
-                  Center(child: SchedulePage()),
-                  Center(child: PresencePage()),
+                  Center(child: Text("Schedule")),//SchedulePage()),
+                  Center(child: Text("Presence")),//PresencePage()),
                   Center(child: RegisterPage()),
                 ],
               ),
@@ -109,7 +96,7 @@ class _AdminPageState extends State<AdminPage> {
               ),
             ),
           );
-        }
+        },
       ),
     );
   }

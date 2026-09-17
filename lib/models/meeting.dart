@@ -1,5 +1,6 @@
 import 'package:calendar/calendar.dart';
 import '../sources/source_register.dart';
+import '../typedef.dart';
 import 'fixture.dart';
 import 'product.dart';
 import 'member.dart';
@@ -8,7 +9,7 @@ import 'member.dart';
 typedef MeetingType = EventType;
 
 
-class Meeting extends Event implements EGPTData{
+class Meeting extends Event implements EGPTItem {
   static final register = RegisterSource();
 
   final Product product;

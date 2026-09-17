@@ -5,18 +5,17 @@ import 'product_view.dart';
 
 
 class MemberTile extends StatelessWidget {
-  const MemberTile(this.member, {
-    required this.setMember,
-    required this.delMember,
-    super.key,
-  });
+  const MemberTile(
+      this.member, {
+        required this.setMember,
+        super.key,
+      });
 
   final Member member;
   final VoidCallback setMember;
-  final VoidCallback delMember;
 
-  Iterable<Product> get products => member.products
-      .where((product) => product.isValid());
+  Iterable<Product> get products =>
+      member.products.where((product) => product.isValid());
 
   @override
   Widget build(BuildContext context) => Card(
@@ -28,15 +27,15 @@ class MemberTile extends StatelessWidget {
       leading: CircleAvatar(
         radius: 32,
         backgroundColor: member.color,
-        child: Text("${member.firstName[0]}${member.lastName[0]}".toUpperCase(),
+        child: Text(
+          "${member.firstName[0]}${member.lastName[0]}".toUpperCase(),
           style: TextStyle(color: Colors.white),
         ),
       ),
-      title: Text(
-        member.name,
-        style: const TextStyle(fontSize: 18),
-      ),
-      subtitle: (products.isEmpty) ? null : Column(
+      title: Text(member.name, style: const TextStyle(fontSize: 18)),
+      subtitle: (products.isEmpty)
+          ? null
+          : Column(
         spacing: 8.0,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: member.products

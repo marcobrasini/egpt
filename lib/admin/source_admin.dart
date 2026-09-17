@@ -1,124 +1,109 @@
-import "package:flutter/foundation.dart";
-import "../sources/source_register.dart";
-import "../sources/source_schedule.dart";
-import "../sources/source_training.dart";
-import "../services/egpt_services.dart";
-import "../models/meeting.dart";
-import "../models/member.dart";
-import "../models/product.dart";
-import "../models/session.dart";
+import 'dart:async';
+import 'package:egpt/services/api/database_service.dart';
+import 'package:egpt/typedef.dart';
+import 'package:flutter/foundation.dart';
+import '../models/meeting.dart';
+import '../models/member.dart';
+import '../models/product.dart';
+import '../models/session.dart';
+import '../services/egpt_services.dart';
+import '../sources/source_database.dart';
+import '../sources/source_register.dart';
+import '../sources/source_schedule.dart';
 
 
 class AdminSource extends ChangeNotifier {
   AdminSource({required this.services});
 
-  bool _loading = false;
-  Object? _error;
-
-  bool get isLoading => _loading;
-  Object? get error => _error;
-
   final EGPTServices services;
   final register = RegisterSource();
   final schedule = ScheduleSource();
-  final training = TrainingSource();
+  DatabaseService get db => services.database;
 
+  // Stato ─────────────────────────────────────────────────────────────────
+  static const _streams = {'members', 'products', 'meetings', 'sessions'};
+  final Set<String> _received = {};
+  final List<StreamSubscription> _subscriptions = [];
+  bool _building = false;
+  bool get loading => _building || !_received.containsAll(_streams);
+  Object? _error;
+  Object? get error => _error;
+
+  // Avvio ─────────────────────────────────────────────────────────────────
   Future<void> build() async {
-    _loading = true;
+    _building = true;
     _error = null;
     notifyListeners();
     try {
-      await services.database.buildRegister(register);
-      await services.database.buildSchedule(schedule);
+      await db.buildRegister(register);
+      await db.buildSchedule(schedule);
     } catch (e) {
       _error = e;
+      print(_error);
     } finally {
-      _loading = false;
-      notifyListeners();
+      _building = false;
+      watch();
     }
   }
 
-  Future<Member> insertMember(Member member) async {
-    final m = await services.database.createMember(member);
-    register.insertMember(m);
-    notifyListeners();
-    return m;
+  void watch() {
+    if (_subscriptions.isNotEmpty || _building) return;
+    _listen<Member>('members', db.watchMembers(register));
+    _listen<Product>('products', db.watchProducts(register));
+    _listen<Meeting>('meetings', db.watchMeetings(schedule));
+    _listen<Session>('sessions', db.watchSessions(schedule));
   }
 
-  Future<Member> modifyMember(Member member) async {
-    await services.database.updateMember(member);
-    register.modifyMember(member);
-    notifyListeners();
-    return member;
+  void _listen<T extends EGPTItem>(String name, Stream<DatabaseData<T>> stream) {
+    _subscriptions.add(
+      stream.listen(
+            (data) {
+          _received.add(name);
+          _error = null;
+          _notify();
+        },
+        onError: (Object e) {
+          _error = e;
+          _received.add(name);
+          _notify();
+        },
+      ),
+    );
   }
 
-  Future<Member> removeMember(Member member) async {
-    await services.database.deleteMember(member);
-    register.removeMember(member);
-    notifyListeners();
-    return member;
+  // Più stream per la stessa transazione → una sola rebuild
+  Timer? _pending;
+  void _notify() {
+    _pending ??= Timer(Duration.zero, () {
+      _pending = null;
+      notifyListeners();
+    });
   }
 
-  Future<Product> insertProduct(Product product) async {
-    final p = await services.database.createProduct(product);
-    register.insertProduct(p);
-    notifyListeners();
-    return p;
-  }
+  // Scritture: solo DB, le cache si aggiornano dagli stream ─────────────
+  Future<Member> insertMember(Member m) => db.createMember(m);
+  Future<Member> modifyMember(Member m) => db.updateMember(m);
+  Future<Member> removeMember(Member m) => db.deleteMember(m);
 
-  Future<Product> modifyProduct(Product product) async {
-    await services.database.updateProduct(product);
-    register.modifyProduct(product);
-    notifyListeners();
-    return product;
-  }
+  Future<Product> insertProduct(Product p) => db.createProduct(p);
+  Future<Product> modifyProduct(Product p) => db.updateProduct(p);
+  Future<Product> removeProduct(Product p) => db.deleteProduct(p);
 
-  Future<Product> removeProduct(Product product) async {
-    await services.database.deleteProduct(product);
-    register.removeProduct(product);
-    notifyListeners();
-    return product;
-  }
+  Future<Meeting> insertMeeting(Meeting m) => db.createMeeting(m);
+  Future<Meeting> modifyMeeting(Meeting m) => db.updateMeeting(m);
+  Future<Meeting> removeMeeting(Meeting m) => db.deleteMeeting(m);
 
-  Future<Meeting> insertMeeting(Meeting meeting) async {
-    final m = await services.database.createMeeting(meeting);
-    schedule.insertMeeting(m);
-    notifyListeners();
-    return m;
-  }
+  Future<Session> insertSession(Session s) => db.createSession(s);
+  Future<Session> modifySession(Session s) => db.updateSession(s);
+  Future<Session> removeSession(Session s) => db.deleteSession(s);
 
-  Future<Meeting> modifyMeeting(Meeting meeting) async {
-    await services.database.updateMeeting(meeting);
-    schedule.modifyMeeting(meeting);
-    notifyListeners();
-    return meeting;
-  }
-
-  Future<Meeting> removeMeeting(Meeting meeting) async {
-    await services.database.deleteMeeting(meeting);
-    schedule.removeMeeting(meeting);
-    notifyListeners();
-    return meeting;
-  }
-
-  Future<Session> insertSession(Session session) async {
-    final s = await services.database.createSession(session);
-    schedule.insertSession(s);
-    notifyListeners();
-    return s;
-  }
-
-  Future<Session> modifySession(Session session) async {
-    await services.database.updateSession(session);
-    schedule.modifySession(session);
-    notifyListeners();
-    return session;
-  }
-
-  Future<Session> removeSession(Session session) async {
-    await services.database.deleteSession(session);
-    schedule.removeSession(session);
-    notifyListeners();
-    return session;
+  // Chiusura ──────────────────────────────────────────────────────────────
+  @override
+  void dispose() {
+    _pending?.cancel();
+    for (final sub in _subscriptions) {
+      sub.cancel();
+    }
+    super.dispose();
   }
 }

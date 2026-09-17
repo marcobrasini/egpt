@@ -1,12 +1,10 @@
 import 'package:egpt/admin/admin_training.dart';
 import 'package:egpt/admin/source_admin.dart';
-import 'package:egpt/admin/widgets/member_page.dart';
 import 'package:egpt/admin/widgets/member_tile.dart';
 import 'package:egpt/admin/widgets/member_form.dart';
 import 'package:egpt/models/member.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -47,7 +45,8 @@ class _RegisterPageState extends State<RegisterPage> {
               final data = form.currentState?.data;
               if (data != null) {
                 final member = await admin.insertMember(
-                    Member.make(data: data));
+                  Member.make(data: data),
+                );
                 navigator.pop(member);
               }
             },
@@ -72,7 +71,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<AdminSource>();
     final scheme = Theme.of(context).colorScheme;
     return CustomScrollView(
       slivers: [
@@ -89,21 +87,19 @@ class _RegisterPageState extends State<RegisterPage> {
                   padding: EdgeInsetsGeometry.all(12.0),
                   child: TextField(
                     controller: _searchController,
-                    onChanged: (value) => setState(() {
-                      _pattern = value;
-                    }),
                     showCursor: true,
                     decoration: InputDecoration(
                       labelText: 'Cerca',
                       icon: Icon(Icons.search),
                     ),
+                    onChanged: (value) => setState(() => _pattern = value),
                   ),
                 ),
               ),
               IconButton(
                 icon: Icon(Icons.person_add),
                 onPressed: () => _addMember(context),
-              )
+              ),
             ],
           ),
         ),
@@ -114,13 +110,11 @@ class _RegisterPageState extends State<RegisterPage> {
               return SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
-                  child: Text(_pattern.isEmpty
-                      ? "Nessun membro"
-                      : "Nessuna corrispondenza",
-                    style: TextStyle(
-                      fontSize: 16.0,
-                      color: scheme.outline,
-                    ),
+                  child: Text(
+                    _pattern.isEmpty
+                        ? "Nessun membro"
+                        : "Nessuna corrispondenza",
+                    style: TextStyle(fontSize: 16.0, color: scheme.outline),
                   ),
                 ),
               );
@@ -128,10 +122,10 @@ class _RegisterPageState extends State<RegisterPage> {
             return SliverList.builder(
               itemCount: members.length,
               itemBuilder: (context, index) {
+                final member = members[index];
                 return MemberTile(
-                  members[index],
-                  setMember: () => _setMember(context, members[index]),
-                  delMember: () {},
+                  member,
+                  setMember: () => _setMember(context, member),
                 );
               },
             );

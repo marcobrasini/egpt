@@ -3,14 +3,16 @@ import 'package:egpt/models/product.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 
-
 class ProductTile extends StatelessWidget {
   final VoidCallback setProduct;
   final VoidCallback delProduct;
   final Product product;
 
-  const ProductTile(this.product, this.setProduct, this.delProduct, {
-    super.key
+  const ProductTile(
+    this.product,
+    this.setProduct,
+    this.delProduct, {
+    super.key,
   });
 
   IconData statusSymbol() {
@@ -28,7 +30,7 @@ class ProductTile extends StatelessWidget {
     lineWidth: 5,
     center: FaIcon(statusSymbol()),
     progressColor: product.statusColor(),
-    percent: product.pastDays/product.duration,
+    percent: product.pastDays / product.duration,
   );
 
   @override
@@ -43,7 +45,7 @@ class ProductTile extends StatelessWidget {
           children: [
             tileProgress(),
             Expanded(
-              child:  Column(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
@@ -51,18 +53,12 @@ class ProductTile extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(product.summary,
+                      Text(
+                        product.summary,
                         style: TextStyle(fontSize: 18.0),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
-                      // IconButton(
-                      //   onPressed: () {},
-                      //   icon: Icon(Icons.delete),
-                      //   padding: EdgeInsets.zero,
-                      //   constraints: const BoxConstraints(),
-                      //   visualDensity: VisualDensity.compact,
-                      // ),
                     ],
                   ),
                   Divider(),
@@ -72,17 +68,15 @@ class ProductTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Inizio: ${product.start}"),
-                            Text("Fine:   ${product.stop}"),
-                          ]
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Inizio: ${product.start}"),
+                          Text("Fine:   ${product.stop}"),
+                        ],
                       ),
-                      Text("${product.done}(${product.redo})/${product.length}",
-                        style: TextStyle(fontSize: 16.0),
-                      ),
+                      Text(product.recap, style: TextStyle(fontSize: 16.0)),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),

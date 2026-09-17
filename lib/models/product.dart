@@ -1,31 +1,24 @@
 import 'dart:math';
-import 'package:egpt/models/meeting.dart';
-import 'package:egpt/models/session.dart';
 import 'package:flutter/material.dart';
 import 'package:calendar/calendar.dart';
-// import 'package:collection/collection.dart';
 import '../sources/source_register.dart';
-import '../sources/source_schedule.dart';
+import '../typedef.dart';
 import 'member.dart';
 
 
-class Product implements EGPTData {
+class Product implements EGPTItem {
   static final register = RegisterSource();
-  static final schedule = ScheduleSource();
   static const _warning = 10;
 
-  final String? id;
+  @override final String? id;
   final Member member;
   String summary;
   int length;
   Date start;
   Date stop;
-  Iterable<Session> get sessions => schedule.sessions.where((s) => s.product == this);
-  Iterable<Meeting> get meetings => schedule.meetings.where((m) => m.product == this);
-
-  int get todo => meetings.fold(0, (sum, m) => sum + m.expand(start, stop).length);
-  int get redo => sessions.where((s) => !s.presence).length;
-  int get done => sessions.where((s) => s.presence).length;
+  int todo;
+  int redo;
+  int done;
 
   Product({
     this.id,
@@ -34,6 +27,9 @@ class Product implements EGPTData {
     required this.length,
     required this.start,
     required this.stop,
+    this.todo = 0,
+    this.redo = 0,
+    this.done = 0,
   });
 
   factory Product.make({
@@ -64,6 +60,7 @@ class Product implements EGPTData {
     stop: stop,
   );
 
+  @override
   Map<String, dynamic> get() => {
     'member': member,
     'summary': summary,
@@ -72,6 +69,7 @@ class Product implements EGPTData {
     'stop': stop,
   };
 
+  @override
   Product set(Map<String, dynamic> data) {
     length = data['length'];
     summary = data['summary'];

@@ -5,9 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart' as flt_supabase;
 import 'package:powersync/powersync.dart';
 import 'package:uuid/uuid.dart';
 import 'api/database_service.dart';
+import '../sources/source_database.dart';
 import '../sources/source_register.dart';
 import '../sources/source_schedule.dart';
-import '../sources/source_training.dart';
 import '../models/meeting.dart';
 import '../models/member.dart';
 import '../models/product.dart';
@@ -16,9 +16,7 @@ import '../typedef.dart';
 import 'local_service.dart';
 import 'supabase_service.dart';
 
-
 class PowerSyncService implements DatabaseService {
-
   static const _databaseFile = 'egpt-powersync.db';
 
   static const _databaseSchema = Schema([
@@ -40,7 +38,7 @@ class PowerSyncService implements DatabaseService {
       Column.integer(LocalService.productColumnLength),
       Column.text(LocalService.productColumnStart),
       Column.text(LocalService.productColumnStop),
-      Column.text(LocalService.productColumnSummary)
+      Column.text(LocalService.productColumnSummary),
     ]),
     Table(LocalService.sessionTable, [
       Column.text('created_at'),
@@ -58,7 +56,7 @@ class PowerSyncService implements DatabaseService {
       Column.text(LocalService.meetingColumnStart),
       Column.text(LocalService.meetingColumnStop),
       Column.text(LocalService.meetingColumnPatternRule),
-    ])
+    ]),
   ]);
 
   static PowerSyncService? _instance;
@@ -78,12 +76,6 @@ class PowerSyncService implements DatabaseService {
     return join(dir.path, _databaseFile);
   }
 
-  Future<void> _ensureSynced() async {
-    if (!db.currentStatus.hasSynced!) {
-      await db.waitForFirstSync();
-    }
-  }
-
   @override
   Future<void> open() async {
     final databasePath = await getDatabasePath();
@@ -94,7 +86,7 @@ class PowerSyncService implements DatabaseService {
       await db.connect(connector: connector!);
     }
     _authSub = backend.client.auth.onAuthStateChange.listen((data) async {
-      switch(data.event) {
+      switch (data.event) {
         case flt_supabase.AuthChangeEvent.signedIn:
           final status = db.currentStatus;
           if (status.connected || status.connecting) break;
@@ -137,10 +129,10 @@ class PowerSyncService implements DatabaseService {
 
   Future<void> _update(String table, String id, DataMap values) async {
     final setClause = values.keys.map((k) => '$k = ?').join(', ');
-    await db.execute(
-      'UPDATE $table SET $setClause WHERE id = ?',
-      [...values.values, id],
-    );
+    await db.execute('UPDATE $table SET $setClause WHERE id = ?', [
+      ...values.values,
+      id,
+    ]);
   }
 
   Future<void> _delete(String table, String id) async {
@@ -235,7 +227,7 @@ class PowerSyncService implements DatabaseService {
     return meeting;
   }
 
-  // Others ───────────────────────────────────────────────────────────────
+  // Builders ───────────────────────────────────────────────────────────────
   Future<List<Member>> listMembers() async {
     final rows = await db.getAll("""
       SELECT * FROM ${LocalService.memberTable} 
@@ -256,12 +248,9 @@ class PowerSyncService implements DatabaseService {
   }
   @override
   Future<void> buildRegister(RegisterSource register) async {
-    await _ensureSynced();
-    register.set(await listMembers());
-    final products = await listProducts();
-    for (var product in products) {
-      product.member.products.add(product);
-    }
+    if (!db.currentStatus.hasSynced!) await db.waitForFirstSync();
+    register.buildMembers(await listMembers());
+    register.buildProducts(await listProducts());
   }
 
   Future<List<Meeting>> listMeeting() async {
@@ -284,17 +273,62 @@ class PowerSyncService implements DatabaseService {
   }
   @override
   Future<void> buildSchedule(ScheduleSource schedule) async {
-    await _ensureSynced();
-    schedule.setMeetings(await listMeeting());
-    schedule.setSessions(await listSession());
+    if (!db.currentStatus.hasSynced!) await db.waitForFirstSync();
+    schedule.buildMeeting(await listMeeting());
+    schedule.buildSession(await listSession());
+  }
+
+  // Watchers ───────────────────────────────────────────────────────────────
+  static const _throttle = Duration(milliseconds: 30);
+
+  Stream<DatabaseData<T>> _watch<T extends EGPTItem>(
+      String sql,
+      T Function(DataMap row) fromDatabase,
+      EGPTData<T> source,
+      ) {
+    final reconcile = DatabaseSource<T>(source, fromDatabase);
+    return db
+        .watch(sql, throttle: _throttle)
+        .map(reconcile.call)
+        .where((list) => list != null)
+        .cast<DatabaseData<T>>();
   }
 
   @override
-  Future<void> buildTraining(TrainingSource training) {
-    // TODO: implement buildTraining
-    throw UnimplementedError();
-  }
+  Stream<DatabaseData<Member>> watchMembers(RegisterSource register) =>
+      _watch<Member>(
+        'SELECT * FROM ${LocalService.memberTable} '
+            'ORDER BY ${LocalService.memberColumnName}',
+        LocalService.memberFromLocal,
+        register.memberSource,
+      );
 
+  @override
+  Stream<DatabaseData<Product>> watchProducts(RegisterSource register) =>
+      _watch<Product>(
+        'SELECT * FROM ${LocalService.productTable} '
+            'ORDER BY ${LocalService.productColumnStart}',
+        LocalService.productFromLocal,
+        register.productSource,
+      );
+
+  @override
+  Stream<DatabaseData<Meeting>> watchMeetings(ScheduleSource schedule) =>
+      _watch<Meeting>(
+        'SELECT * FROM ${LocalService.meetingTable} '
+            'ORDER BY ${LocalService.meetingColumnStart}',
+        LocalService.meetingFromLocal,
+        schedule.meetingSource,
+      );
+
+  @override
+  Stream<DatabaseData<Session>> watchSessions(ScheduleSource schedule) =>
+      _watch<Session>(
+        'SELECT * FROM ${LocalService.sessionTable} '
+            'ORDER BY ${LocalService.sessionColumnStart}',
+        LocalService.sessionFromLocal,
+        schedule.sessionSource,
+      );
 }
 
 
@@ -311,7 +345,7 @@ class SupabaseConnector extends PowerSyncBackendConnector {
       for (var operation in transaction.crud) {
         final id = operation.id;
         final table = rest.from(operation.table);
-        switch(operation.op) {
+        switch (operation.op) {
           case UpdateType.put:
             final data = DataMap.of(operation.opData!);
             data["id"] = id;
@@ -326,11 +360,10 @@ class SupabaseConnector extends PowerSyncBackendConnector {
         }
       }
       await transaction.complete();
-    } on flt_supabase.PostgrestException catch(e) {
+    } on flt_supabase.PostgrestException catch (e) {
       if (e.code != null) {
         await transaction.complete();
-      }
-      else {
+      } else {
         rethrow;
       }
     }

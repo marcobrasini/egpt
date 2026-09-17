@@ -1,13 +1,14 @@
 import 'dart:ui';
 import 'package:calendar/calendar.dart';
 import '../sources/source_register.dart';
+import '../typedef.dart';
 import 'product.dart';
 
 
-class Member implements EGPTData {
+class Member implements EGPTItem {
   static final register = RegisterSource();
 
-  final String? id;
+  @override final String? id;
   String name;
   String firstName;
   String lastName;
@@ -44,6 +45,7 @@ class Member implements EGPTData {
     photo: data['photo'],
   );
 
+  @override
   Map<String, dynamic> get() => {
     'name': name,
     'firstName': firstName,
@@ -55,6 +57,7 @@ class Member implements EGPTData {
     'photo': photo,
   };
 
+  @override
   Member set(Map<String, dynamic> data) {
     name = data['name'];
     firstName = data['firstName'];
@@ -79,5 +82,4 @@ class Member implements EGPTData {
   bool get training =>  products.any((product) => product.isOngoing() && !product.isWarning());
   bool get expiring =>  products.any((product) => product.isWarning());
   bool get finished => !products.any((product) => product.isOngoing());
-
 }

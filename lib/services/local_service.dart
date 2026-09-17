@@ -3,10 +3,6 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:powersync/sqlite3.dart' as sql;
 import 'package:uuid/uuid.dart';
-import 'api/database_service.dart';
-import '../sources/source_register.dart';
-import '../sources/source_schedule.dart';
-import '../sources/source_training.dart';
 import '../models/member.dart';
 import '../models/product.dart';
 import '../models/session.dart';
@@ -18,7 +14,8 @@ import '../typedef.dart';
 typedef Database = sql.Database;
 
 
-class LocalService extends DatabaseService {
+class LocalService {
+  //}extends DatabaseService {
   static const _databaseVersion = 1;
   static const _databaseFile = "egpt-local.db";
 
@@ -34,7 +31,11 @@ class LocalService extends DatabaseService {
   static const String memberColumnPhone = "phone";
   //static const memberColumnPhoto = "photo";
 
-  static DataMap memberToLocal(Member member, {String? id, bool make = false}) => {
+  static DataMap memberToLocal(
+    Member member, {
+    String? id,
+    bool make = false,
+  }) => {
     if (make) memberColumnId: id ?? member.id,
     memberColumnName: member.name,
     memberColumnFirstName: member.firstName,
@@ -65,7 +66,11 @@ class LocalService extends DatabaseService {
   static const String productColumnStart = "start";
   static const String productColumnStop = "stop";
 
-  static DataMap productToLocal(Product product, {String? id, bool make = false}) => {
+  static DataMap productToLocal(
+    Product product, {
+    String? id,
+    bool make = false,
+  }) => {
     if (make) productColumnId: id ?? product.id,
     if (make) productColumnMemberId: product.member.id,
     productColumnSummary: product.summary,
@@ -92,7 +97,11 @@ class LocalService extends DatabaseService {
   static const sessionColumnStop = "stop";
   static const sessionColumnPresence = "presence";
 
-  static DataMap sessionToLocal(Session session, {String? id, bool make = false}) => {
+  static DataMap sessionToLocal(
+    Session session, {
+    String? id,
+    bool make = false,
+  }) => {
     if (make) sessionColumnId: id ?? session.id,
     if (make) sessionColumnProductId: session.product.id,
     sessionColumnStart: session.start.toString(),
@@ -117,7 +126,11 @@ class LocalService extends DatabaseService {
   static const meetingColumnParentId = "recurrence_id";
   static const meetingColumnPatternRule = "recurrence_rule";
 
-  static DataMap meetingToLocal(Meeting meeting, {String? id, bool make = false}) => {
+  static DataMap meetingToLocal(
+    Meeting meeting, {
+    String? id,
+    bool make = false,
+  }) => {
     if (make) meetingColumnId: id ?? meeting.id,
     if (make) meetingColumnProductId: meeting.product.id,
     meetingColumnStart: meeting.start.toString(),
@@ -199,8 +212,7 @@ class LocalService extends DatabaseService {
         )
     """);
     db.execute('PRAGMA user_version = $_databaseVersion;');
-}
-
+  }
 
   @override
   Future<void> open() async {
@@ -240,18 +252,20 @@ class LocalService extends DatabaseService {
     );
   }
 
-  void _update(Database db,String table, DataMap values, {
-    required String where, required List<Object?> whereArgs,
+  void _update(Database db, String table, DataMap values, {
+    required String where,
+    required List<Object?> whereArgs,
   }) {
     final setClause = values.keys.map((k) => '$k = ?').join(', ');
-    db.execute(
-      'UPDATE $table SET $setClause WHERE $where',
-      [...values.values, ...whereArgs],
-    );
+    db.execute('UPDATE $table SET $setClause WHERE $where', [
+      ...values.values,
+      ...whereArgs,
+    ]);
   }
 
   void _delete(Database db, String table, {
-    required String where, required List<Object?> whereArgs,
+    required String where,
+    required List<Object?> whereArgs,
   }) {
     db.execute('DELETE FROM $table WHERE $where', whereArgs);
   }
@@ -263,18 +277,21 @@ class LocalService extends DatabaseService {
     _insert(db, memberTable, memberToLocal(member, id: id, make: true));
     return Member.make(id: id, data: member.get());
   }
+
   @override
   Future<Product> createProduct(Product product, [String? id]) async {
     id ??= const Uuid().v4();
     _insert(db, productTable, productToLocal(product, id: id, make: true));
     return Product.make(id: id, data: product.get());
   }
+
   @override
   Future<Session> createSession(Session session, [String? id]) async {
     id ??= const Uuid().v4();
     _insert(db, sessionTable, sessionToLocal(session, id: id, make: true));
     return Session.make(id: id, data: session.get());
   }
+
   @override
   Future<Meeting> createMeeting(Meeting meeting, [String? id]) async {
     id ??= const Uuid().v4();
@@ -285,71 +302,86 @@ class LocalService extends DatabaseService {
   // Update ────────────────────────────────────────────────────────────────────
   @override
   Future<void> updateMember(Member member) async {
-    _update(db, memberTable, memberToLocal(member),
-      where: '$memberColumnId = ?', whereArgs: [member.id!],
+    _update(
+      db,
+      memberTable,
+      memberToLocal(member),
+      where: '$memberColumnId = ?',
+      whereArgs: [member.id!],
     );
   }
+
   @override
   Future<void> updateProduct(Product product) async {
-    _update(db, productTable, productToLocal(product),
-      where: '$productColumnId = ?', whereArgs: [product.id!],
+    _update(
+      db,
+      productTable,
+      productToLocal(product),
+      where: '$productColumnId = ?',
+      whereArgs: [product.id!],
     );
   }
+
   @override
   Future<void> updateSession(Session session) async {
-    _update(db, sessionTable, sessionToLocal(session),
-      where: '$sessionColumnId = ?', whereArgs: [session.id!],
+    _update(
+      db,
+      sessionTable,
+      sessionToLocal(session),
+      where: '$sessionColumnId = ?',
+      whereArgs: [session.id!],
     );
   }
+
   @override
   Future<void> updateMeeting(Meeting meeting) async {
-    _update(db, meetingTable, meetingToLocal(meeting),
-      where: '$meetingColumnId = ?', whereArgs: [meeting.id!],
+    _update(
+      db,
+      meetingTable,
+      meetingToLocal(meeting),
+      where: '$meetingColumnId = ?',
+      whereArgs: [meeting.id!],
     );
   }
 
   // Delete ────────────────────────────────────────────────────────────────────
   @override
   Future<void> deleteMember(Member member) async {
-    _delete(db, memberTable,
-      where: '$memberColumnId = ?', whereArgs: [member.id],
+    _delete(
+      db,
+      memberTable,
+      where: '$memberColumnId = ?',
+      whereArgs: [member.id],
     );
   }
+
   @override
   Future<void> deleteProduct(Product product) async {
-    _delete(db, productTable,
-        where: '$productColumnId = ?', whereArgs: [product.id]);
+    _delete(
+      db,
+      productTable,
+      where: '$productColumnId = ?',
+      whereArgs: [product.id],
+    );
   }
+
   @override
   Future<void> deleteSession(Session session) async {
-    _delete(db, sessionTable,
-      where: '$sessionColumnId = ?', whereArgs: [session.id],
+    _delete(
+      db,
+      sessionTable,
+      where: '$sessionColumnId = ?',
+      whereArgs: [session.id],
     );
   }
+
   @override
   Future<void> deleteMeeting(Meeting meeting) async {
-    _delete(db, meetingTable,
-      where: '$meetingColumnId = ?', whereArgs: [meeting.id],
+    _delete(
+      db,
+      meetingTable,
+      where: '$meetingColumnId = ?',
+      whereArgs: [meeting.id],
     );
   }
-
-  // Builders ───────────────────────────────────────────────────────────────────
-  @override
-  Future<void> buildRegister(RegisterSource register) {
-    // TODO: implement buildRegister
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> buildSchedule(ScheduleSource schedule) {
-    // TODO: implement buildSchedule
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> buildTraining(TrainingSource training) {
-    // TODO: implement buildTraining
-    throw UnimplementedError();
-  }
-
 }
