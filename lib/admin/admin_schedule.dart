@@ -1,12 +1,10 @@
-import 'package:egpt/admin/widgets/dialog_form.dart';
-import 'package:egpt/models/session.dart';
 import 'package:flutter/material.dart';
-import 'package:calendar/calendar.dart';
-import 'package:egpt/models/meeting.dart';
-import 'package:egpt/admin/source_admin.dart';
-import 'package:egpt/admin/widgets/meeting_form.dart';
-import 'package:egpt/admin/widgets/option_form.dart';
 import 'package:provider/provider.dart';
+import 'package:calendar/calendar.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/widgets/forms.dart';
+import 'source_admin.dart';
+
 
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
@@ -31,62 +29,56 @@ class _SchedulePageState extends State<SchedulePage>
   Future<MeetingType?> confirm(Meeting meeting, String action) async {
     final typeForm = GlobalKey<OptionFormState>();
     final lower = action.toLowerCase();
-    return await showDialog<MeetingType?>(
+    return await showFormDialog(
       context: context,
-      builder: (context) => ChangeNotifierProvider<AdminSource>.value(
-        value: admin,
-        child: AlertDialog(
-          title: Text("$action appuntamento", textAlign: TextAlign.center),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+      title: "$action appuntamento",
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (meeting.isInstance) Column(
             children: [
-              if (meeting.isInstance) Column(
-                children: [
-                  Text(
-                    "Stai ${lower}ndo un evento ricorrente."
-                    "\nApplica le modifiche a:",
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: OptionForm(
-                      option: MeetingType.exception,
-                      key: typeForm,
-                    ),
-                  ),
-                ],
+              Text(
+                "Stai ${lower}ndo un evento ricorrente."
+                "\nApplica le modifiche a:",
               ),
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: DefaultTextStyle.of(
-                    context,
-                  ).style.copyWith(color: Colors.black, fontSize: 16.0),
-                  children: [
-                    TextSpan(text: "Vuoi ${lower}re l'appuntamento\ncon "),
-                    TextSpan(
-                      text: meeting.member.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const TextSpan(text: "?"),
-                  ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: OptionForm(
+                  option: MeetingType.exception,
+                  key: typeForm,
                 ),
               ),
             ],
           ),
-          actionsAlignment: MainAxisAlignment.spaceBetween,
-          actions: [
-            TextButton(
-              child: const Text("Annulla"),
-              onPressed: () => Navigator.of(context).pop(null),
+          RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: DefaultTextStyle.of(
+                context,
+              ).style.copyWith(color: Colors.black, fontSize: 16.0),
+              children: [
+                TextSpan(text: "Vuoi ${lower}re l'appuntamento\ncon "),
+                TextSpan(
+                  text: meeting.member.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const TextSpan(text: "?"),
+              ],
             ),
-            TextButton(
-              child: Text(action),
-              onPressed: () async =>
-                  Navigator.of(context).pop(typeForm.currentState!.meetingType),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
+      actions: [
+        FormAction("Annulla"),
+        FormAction(action,
+          color: Theme.of(context).colorScheme.error,
+          onPressed: (dialog) async {
+            if (typeForm.currentState?.meetingType case final type?) {
+              Navigator.of(context).pop(type);
+            }
+          }
+        ),
+      ],
     );
   }
 
@@ -119,13 +111,14 @@ class _SchedulePageState extends State<SchedulePage>
 
   Future<Meeting?> editMeeting(BuildContext context, Meeting meeting) async {
     final meetingForm = GlobalKey<MeetingFormState>();
-    final isSession = meeting is Session;
+    final isSession = meeting is Presence;
     return await showFormDialog(
       context: context,
       title: isSession ? "Sessione" : "Appuntamento",
       content: MeetingForm(admin.register, meeting, key: meetingForm, enabled: !isSession),
       actions: (isSession) ? null : [
         FormAction("Cancella",
+          color: Theme.of(context).colorScheme.error,
           onPressed: (dialog) async {
             final deleted = await delMeeting(meeting);
             if (dialog.mounted) {
@@ -169,14 +162,15 @@ class _SchedulePageState extends State<SchedulePage>
         final recurrence = admin.schedule.meeting(meeting.parentId!);
         return await admin.removeMeeting(recurrence);
       case MeetingType.deviation:
-        final recurrence = admin.schedule.meeting(meeting.parentId!);
-        recurrence.patternConclude(meeting.start.date);
+        final expiration = (meeting.start.date - 7) & meeting.start.time;
+        var recurrence = admin.schedule.meeting(meeting.parentId!);
+        recurrence = recurrence.setPatternUntil(expiration);
         return (recurrence.isSignificant)
             ? await admin.modifyMeeting(recurrence)
             : await admin.removeMeeting(recurrence);
       case MeetingType.exception:
-        final recurrence = admin.schedule.meeting(meeting.parentId!);
-        recurrence.exceptionInsert(meeting.start);
+        var recurrence = admin.schedule.meeting(meeting.parentId!);
+        recurrence = recurrence.addPatternException(meeting.start);
         return (recurrence.isSignificant)
             ? await admin.modifyMeeting(recurrence)
             : await admin.removeMeeting(recurrence);
@@ -190,13 +184,11 @@ class _SchedulePageState extends State<SchedulePage>
         ? await confirm(meeting, "Modifica")
         : MeetingType.occurrence;
     switch (option) {
-      case null:
-        return null;
       case MeetingType.occurrence:
         if (meeting.isException) {
-          final recurrence = admin.schedule.meeting(meeting.parentId!);
+          var recurrence = admin.schedule.meeting(meeting.parentId!);
           if (recurrence.hasInstance(meeting, fixture) ?? false) {
-            recurrence.exceptionRemove(fixture.start);
+            recurrence = recurrence.delPatternException(fixture.start);
             await admin.modifyMeeting(recurrence);
             await admin.removeMeeting(meeting);
             return meeting.set(fixture.get());
@@ -204,37 +196,34 @@ class _SchedulePageState extends State<SchedulePage>
         }
         return await admin.modifyMeeting(meeting.set(fixture.get()));
       case MeetingType.recurrence:
-        final duration = fixture.duration;
-        final difference = fixture.start.difference(meeting.start);
-        final recurrence = admin.schedule.meeting(meeting.parentId!);
+        final variation = fixture.start.difference(meeting.start);
+        var recurrence = admin.schedule.meeting(meeting.parentId!);
         if (recurrence.isDeviation) {
-          final parent = admin.schedule.meeting(recurrence.parentId!);
+          final expiration = recurrence.patternUntil!.add(variation);
+          var parent = admin.schedule.meeting(recurrence.parentId!);
           if (parent.hasDeviation(recurrence, fixture) ?? false) {
-            parent.patternConclude(recurrence.patternUntil!);
+            parent = parent.setPatternUntil(expiration);
             await admin.modifyMeeting(parent);
             await admin.removeMeeting(recurrence);
-            return recurrence.shift(difference, duration);
+            return recurrence.shift(variation, fixture.duration);
           }
         }
-        return await admin.modifyMeeting(
-          recurrence.shift(difference, duration),
-        );
+        return await admin.modifyMeeting(recurrence.shift(variation, fixture.duration));
       case MeetingType.deviation:
-        final recurrence = admin.schedule.meeting(meeting.parentId!);
-        final deviation = recurrence.deviation(meeting, fixture);
-        if (deviation == null) return null;
+        final expiration = (meeting.start.date - 7) & meeting.start.time;
+        var recurrence = admin.schedule.meeting(meeting.parentId!);
+        recurrence = recurrence.setPatternUntil(expiration);
         (recurrence.isSignificant)
             ? await admin.modifyMeeting(recurrence)
             : await admin.removeMeeting(recurrence);
-        return await admin.insertMeeting(deviation);
+        return await admin.insertMeeting(meeting.deviation(fixture));
       case MeetingType.exception:
-        final recurrence = admin.schedule.meeting(meeting.parentId!);
-        final exception = recurrence.exception(meeting, fixture);
-        if (exception == null) return null;
+        var recurrence = admin.schedule.meeting(meeting.parentId!);
+        recurrence = recurrence.addPatternException(meeting.start);
         (recurrence.isSignificant)
             ? await admin.modifyMeeting(recurrence)
             : await admin.removeMeeting(recurrence);
-        return await admin.insertMeeting(exception);
+        return await admin.insertMeeting(meeting.exception(fixture));
       default:
         return null;
     }
@@ -249,44 +238,43 @@ class _SchedulePageState extends State<SchedulePage>
         view: CalendarView.weekly,
         source: admin.schedule,
         timeScheme: TimeScheme(6, 24, round: 15),
+        timeConfig: TextConfig(textStyle: TextStyle(fontSize: 14)),
         headerBuilder: (context, start, stop) => Row(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(start.format("dd MMMM yyyy"), style: TextStyle(fontSize: 16)),
+            Text(start.format("dd MMMM yyyy"), style: TextStyle(fontSize: 14)),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Divider(),
               ),
             ),
-            Text(stop.format("dd MMMM yyyy"), style: TextStyle(fontSize: 16)),
+            Text(stop.format("dd MMMM yyyy"), style: TextStyle(fontSize: 14)),
           ],
         ),
         eventConfig: EventConfig(
           textStyle: TextStyle(color: Colors.white),
-          draggable: (meeting) => meeting is! Session,
-          resizable: (meeting) => meeting is! Session,
+          draggable: (meeting) => meeting is! Presence,
+          resizable: (meeting) => meeting is! Presence,
           padding: 2.0,
         ),
-        onFrameTap: (datetime) {
-          makeMeeting(context, datetime);
-        },
-        onEventTap: (meeting) {
-          editMeeting(context, meeting);
-        },
+        onFrameTap: (datetime) => makeMeeting(context, datetime),
+        onEventTap: (meeting) => editMeeting(context, meeting),
         onEventDragged: (meeting, fixture) async {
+          final messenger = ScaffoldMessenger.of(context);
           final dragged = await setMeeting(meeting, fixture);
           if (dragged == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(content: Text("Modifica fallita")),
             );
           }
         },
         onEventResized: (meeting, fixture) async {
+          final messenger = ScaffoldMessenger.of(context);
           final resized = await setMeeting(meeting, fixture);
           if (resized == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(content: Text("Modifica fallita")),
             );
           }

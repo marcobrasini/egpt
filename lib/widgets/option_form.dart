@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
-import '../../models/meeting.dart';
+import 'package:egpt/models/models.dart';
 
 
 class OptionForm extends StatefulWidget {

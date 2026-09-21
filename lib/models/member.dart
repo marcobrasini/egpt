@@ -1,24 +1,26 @@
 import 'dart:ui';
+import 'package:equatable/equatable.dart';
 import 'package:calendar/calendar.dart';
-import '../sources/source_register.dart';
-import '../typedef.dart';
-import 'product.dart';
+import 'package:egpt/sources/sources.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/types.dart';
 
 
-class Member implements EGPTItem {
+class Member extends Equatable implements EGPTItem {
   static final register = RegisterSource();
+  static final schedule = ScheduleSource();
 
   @override final String? id;
-  String name;
-  String firstName;
-  String lastName;
-  Color color;
-  Date? birth;
-  String? email;
-  String? phone;
-  String? photo;
+  final String name;
+  final String firstName;
+  final String lastName;
+  final Color color;
+  final Date? birth;
+  final String? email;
+  final String? phone;
+  final String? photo;
 
-  Member({
+  const Member({
     this.id,
     required this.name,
     required this.firstName,
@@ -32,7 +34,7 @@ class Member implements EGPTItem {
 
   factory Member.make({
     String? id,
-    required Map<String, dynamic> data,
+    required DataMap data,
   }) => Member(
     id: id,
     name: data['name'],
@@ -46,32 +48,32 @@ class Member implements EGPTItem {
   );
 
   @override
-  Map<String, dynamic> get() => {
+  DataMap get() => {
     'name': name,
     'firstName': firstName,
     'lastName': lastName,
     'color': color,
-    'birth': birth,
-    'email': email,
-    'phone': phone,
-    'photo': photo,
+    'birth': ?birth,
+    'email': ?email,
+    'phone': ?phone,
+    'photo': ?photo,
   };
 
   @override
-  Member set(Map<String, dynamic> data) {
-    name = data['name'];
-    firstName = data['firstName'];
-    lastName = data['lastName'];
-    color = data['color'];
-    birth = data['birth'];
-    email = data['email'];
-    phone = data['phone'];
-    return this;
-  }
+  Member set(DataMap data) => Member(
+    id: id,
+    name: data['name'] ?? name,
+    firstName: data['firstName'] ?? firstName,
+    lastName: data['lastName'] ?? lastName,
+    color: data['color'] ?? color,
+    birth: data['birth'] ?? birth,
+    email: data['email'] ?? email,
+    phone: data['phone'] ?? phone,
+    photo: data['photo'] ?? photo,
+  );
 
-  final List<Product> products = [];
-  Product product(String productId) =>
-      products.firstWhere((p) => p.id == productId);
+  List<Product> get products => register.products(id!);
+  Product product(String productId) => register.product(productId, id!);
 
   int get age {
     if (birth == null) return -1;
@@ -85,4 +87,9 @@ class Member implements EGPTItem {
   bool get training =>  products.any((product) => product.isOngoing() && !product.isWarning());
   bool get expiring =>  products.any((product) => product.isWarning());
   bool get finished => !products.any((product) => product.isOngoing());
+
+  @override
+  List<Object?> get props =>
+      [id, name, firstName, lastName, color, birth, email, phone, photo];
+
 }

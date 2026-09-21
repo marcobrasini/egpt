@@ -1,14 +1,9 @@
 import 'package:calendar/calendar.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:powersync/sqlite3.dart' as sql;
-import 'package:uuid/uuid.dart';
-import '../models/member.dart';
-import '../models/product.dart';
-import '../models/session.dart';
-import '../models/meeting.dart';
-import '../utils/color.dart';
-import '../typedef.dart';
+import 'package:sqlite3/sqlite3.dart' as sql;
+import 'package:egpt/models/models.dart';
+import 'package:egpt/style.dart';
+import 'package:egpt/types.dart';
+import 'package:egpt/utils/timezone.dart';
 
 
 typedef Database = sql.Database;
@@ -76,7 +71,7 @@ class LocalService {
     productColumnStop: product.stop.toString(),
   };
 
-  static Product productFromLocal(DataMap row) => Product.build(
+  static Product productFromLocal(DataMap row) => Product(
     id: row[productColumnId],
     memberId: row[productColumnMemberId],
     summary: row[productColumnSummary],
@@ -88,40 +83,58 @@ class LocalService {
   // Session ─────────────────────────────────────────────────────────────────
   static const sessionTable = "sessions";
   static const sessionColumnId = "id";
-  static const sessionColumnMemberId = "member_id";
   static const sessionColumnProductId = "product_id";
-  static const sessionColumnStart = "start";
-  static const sessionColumnStop = "stop";
-  static const sessionColumnPresence = "presence";
 
   static DataMap sessionToLocal(
-    Session session, {
-    String? id,
-    bool make = false,
-  }) => {
+      Session session, {
+        String? id,
+        bool make = false,
+      }) => {
     if (make) sessionColumnId: id ?? session.id,
-    if (make) sessionColumnProductId: session.product.id,
-    sessionColumnStart: session.start.toString(),
-    sessionColumnStop: session.stop.toString(),
-    sessionColumnPresence: session.presence,
+    if (make) sessionColumnProductId: session.productId,
   };
 
   static Session sessionFromLocal(DataMap row) => Session.build(
     id: row[sessionColumnId],
     productId: row[sessionColumnProductId],
-    start: DateTime.parse(row[sessionColumnStart]),
-    stop: DateTime.parse(row[sessionColumnStop]),
-    presence: row[sessionColumnPresence] > 0,
+  );
+
+  // Presence ─────────────────────────────────────────────────────────────────
+  static const presenceTable = "presences";
+  static const presenceColumnId = "id";
+  static const presenceColumnProductId = "product_id";
+  static const presenceColumnPresence = "presence";
+  static const presenceColumnStart = "start";
+  static const presenceColumnStop = "stop";
+
+  static DataMap presenceToLocal(
+    Presence presence, {
+    String? id,
+    bool make = false,
+  }) => {
+    if (make) presenceColumnId: id ?? presence.id,
+    if (make) presenceColumnProductId: presence.product.id,
+    presenceColumnStart: presence.start.tzToUtc().toString(),
+    presenceColumnStop: presence.stop.tzToUtc().toString(),
+    presenceColumnPresence: presence.presence,
+  };
+
+  static Presence presenceFromLocal(DataMap row) => Presence(
+    id: row[presenceColumnId],
+    productId: row[presenceColumnProductId],
+    start: utcToTz(DateTime.parse(row[presenceColumnStart])),
+    stop: utcToTz(DateTime.parse(row[presenceColumnStop])),
+    presence: row[presenceColumnPresence] > 0,
   );
 
   // Meeting ─────────────────────────────────────────────────────────────────
   static const meetingTable = "meetings";
   static const meetingColumnId = "id";
   static const meetingColumnProductId = "product_id";
+  static const meetingColumnPatternRule = "recurrence_rule";
+  static const meetingColumnParentId = "recurrence_id";
   static const meetingColumnStart = "start";
   static const meetingColumnStop = "stop";
-  static const meetingColumnParentId = "recurrence_id";
-  static const meetingColumnPatternRule = "recurrence_rule";
 
   static DataMap meetingToLocal(
     Meeting meeting, {
@@ -130,18 +143,20 @@ class LocalService {
   }) => {
     if (make) meetingColumnId: id ?? meeting.id,
     if (make) meetingColumnProductId: meeting.product.id,
-    meetingColumnStart: meeting.start.toString(),
-    meetingColumnStop: meeting.stop.toString(),
+    meetingColumnStart: meeting.start.tzToUtc().toString(),
+    meetingColumnStop: meeting.stop.tzToUtc().toString(),
     meetingColumnParentId: meeting.parentId,
     meetingColumnPatternRule: meeting.patternRule,
   };
 
-  static Meeting meetingFromLocal(DataMap row) => Meeting.build(
+  static Meeting meetingFromLocal(DataMap row) => Meeting(
     id: row[meetingColumnId],
     productId: row[meetingColumnProductId],
     parentId: row[meetingColumnParentId],
-    start: DateTime.parse(row[meetingColumnStart]),
-    stop: DateTime.parse(row[meetingColumnStop]),
-    patternRule: row[meetingColumnPatternRule],
+    start: utcToTz(DateTime.parse(row[meetingColumnStart])),
+    stop: utcToTz(DateTime.parse(row[meetingColumnStop])),
+    pattern: (row[meetingColumnPatternRule] != null)
+        ? Pattern.fromICSString(row[meetingColumnPatternRule])
+        : null,
   );
 }

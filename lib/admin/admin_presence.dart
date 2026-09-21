@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:calendar/calendar.dart';
+import 'package:egpt/models/models.dart';
 import 'widgets/presence_tile.dart';
-import '../models/meeting.dart';
-import '../models/session.dart';
-import 'admin_statistic.dart';
 import 'source_admin.dart';
 
 
@@ -23,14 +21,13 @@ class _PresencePageState extends State<PresencePage>
 
   ValueKey<Meeting> _key(Meeting meeting) => ValueKey<Meeting>(meeting);
 
-  Future<Meeting?> delMeeting(BuildContext context, Meeting meeting) async {
+  Future<Meeting?> delMeeting(Meeting meeting) async {
     _presences.remove(_key(meeting));
     if (meeting.isOccurrence || meeting.isException) {
       return await admin.removeMeeting(meeting);
-    }
-    if (meeting.isInstance) {
-      final recurrence = admin.schedule.meeting(meeting.parentId!);
-      recurrence.exceptionInsert(meeting.start);
+    } else if (meeting.isInstance) {
+      var recurrence = admin.schedule.meeting(meeting.parentId!);
+      recurrence = recurrence.addPatternException(meeting.start);
       return (recurrence.isSignificant)
           ? await admin.modifyMeeting(recurrence)
           : await admin.removeMeeting(recurrence);
@@ -38,10 +35,13 @@ class _PresencePageState extends State<PresencePage>
     return null;
   }
 
-  Future<Session?> addSession(BuildContext context, Meeting meeting) async {
-    final presence = _presences[_key(meeting)];
-    if (presence == null)  return null;
-    final session = Session.from(meeting: meeting, presence: presence);
+  Future<Session?> addPresence(Meeting meeting) async {
+    final p = _presences[_key(meeting)];
+    if (p == null) return null;
+    final session = Session(
+      productId: meeting.productId,
+      presence: Presence.from(meeting: meeting, presence: p)
+    );
     return await admin.insertSession(session);
   }
 
@@ -185,11 +185,11 @@ class _PresencePageState extends State<PresencePage>
                 ),
               ),
               onEventSwipedLeft: (meeting, fixture) async {
-                await delMeeting(context, meeting);
+                await delMeeting(meeting);
               },
               onEventSwipedRight: (meeting, fixture) async {
-                final session = await addSession(context, meeting);
-                if (session != null) await delMeeting(context, meeting);
+                final presence = await addPresence(meeting);
+                if (presence != null) await delMeeting(meeting);
               },
               swipeableEvent: true,
             ),

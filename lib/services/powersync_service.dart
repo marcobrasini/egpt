@@ -2,21 +2,16 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:powersync/sqlite_async.dart';
+import 'package:sqlite_async/sqlite_async.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as flt_supabase;
 import 'package:powersync/powersync.dart';
 import 'package:uuid/uuid.dart';
+import 'package:egpt/sources/sources.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/types.dart';
 import 'api/database_service.dart';
-import '../sources/source_database.dart';
-import '../sources/source_register.dart';
-import '../sources/source_schedule.dart';
-import '../models/meeting.dart';
-import '../models/member.dart';
-import '../models/product.dart';
-import '../models/session.dart';
-import '../typedef.dart';
-import 'local_service.dart';
 import 'supabase_service.dart';
+import 'local_service.dart';
 
 
 class PowerSyncService implements DatabaseService {
@@ -47,9 +42,14 @@ class PowerSyncService implements DatabaseService {
       Column.text('created_at'),
       Column.text('updated_at'),
       Column.text(LocalService.sessionColumnProductId),
-      Column.text(LocalService.sessionColumnStart),
-      Column.text(LocalService.sessionColumnStop),
-      Column.integer(LocalService.sessionColumnPresence),
+    ]),
+    Table(LocalService.presenceTable, [
+      Column.text('created_at'),
+      Column.text('updated_at'),
+      Column.text(LocalService.presenceColumnProductId),
+      Column.text(LocalService.presenceColumnStart),
+      Column.text(LocalService.presenceColumnStop),
+      Column.integer(LocalService.presenceColumnPresence),
     ]),
     Table(LocalService.meetingTable, [
       Column.text('created_at'),
@@ -62,8 +62,8 @@ class PowerSyncService implements DatabaseService {
     ]),
   ]);
 
-  static PowerSyncService? _instance;
   PowerSyncService._singleton(this.backend);
+  static PowerSyncService? _instance;
   factory PowerSyncService(SupabaseService supabase) {
     return _instance ??= PowerSyncService._singleton(supabase);
   }
@@ -97,11 +97,11 @@ class PowerSyncService implements DatabaseService {
           await db.connect(connector: connector!);
           break;
         case flt_supabase.AuthChangeEvent.signedOut:
-          await db.disconnect();
           connector = null;
+          await reset();
           break;
         case flt_supabase.AuthChangeEvent.tokenRefreshed:
-          connector?.prefetchCredentials();
+          await connector?.prefetchCredentials();
           break;
         default:
           break;
@@ -189,7 +189,7 @@ class PowerSyncService implements DatabaseService {
   Future<void> _deleteCascadeMember(SqliteWriteContext tx, Member member) async {
     final ids = member.products.map((p) => p.id!).toList();
     await _delete(tx, LocalService.meetingTable, ids, LocalService.meetingColumnProductId);
-    await _delete(tx, LocalService.sessionTable, ids, LocalService.sessionColumnProductId);
+    await _delete(tx, LocalService.presenceTable, ids, LocalService.presenceColumnProductId);
     await _delete(tx, LocalService.productTable, ids);
     await _delete(tx, LocalService.memberTable, [member.id!]);
   }
@@ -234,38 +234,37 @@ class PowerSyncService implements DatabaseService {
 
   Future<void> _deleteCascadeProduct(SqliteWriteContext tx, Product product) async {
     await _delete(tx, LocalService.meetingTable, [product.id!], LocalService.meetingColumnProductId);
-    await _delete(tx, LocalService.sessionTable, [product.id!], LocalService.sessionColumnProductId);
+    await _delete(tx, LocalService.presenceTable, [product.id!], LocalService.presenceColumnProductId);
     await _delete(tx, LocalService.productTable, [product.id!]);
   }
 
   // Session ───────────────────────────────────────────────────────────────
   @override
-  Future<Session> createSession(Session session) async {
-    final id = session.id ?? Uuid().v4();
-    final data = LocalService.sessionToLocal(session, id: id, make: true);
+  Future<Session> createSession(Session s) async {
+    final data = LocalService.sessionToLocal(s, make: true);
     await db.writeTransaction((tx) async {
-      (await _exists(tx, LocalService.memberTable, session.product.member.id!))
-          ? (await _exists(tx, LocalService.productTable, session.product.id!))
+      (await _exists(tx, LocalService.memberTable, s.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, s.product.id!))
               ? await _create(tx, LocalService.sessionTable, data)
-              : throw MissingProductException(session.product.id!)
-          : throw MissingMemberException(session.product.member.id!);
+              : throw MissingProductException(s.product.id!)
+          : throw MissingMemberException(s.product.member.id!);
     });
-    return Session.make(id: id, data: session.get());
+    return s;
   }
 
   @override
-  Future<Session> updateSession(Session session) async {
-    final data = LocalService.sessionToLocal(session);
+  Future<Session> updateSession(Session s) async {
+    final data = LocalService.sessionToLocal(s);
     await db.writeTransaction((tx) async {
-      (await _exists(tx, LocalService.memberTable, session.product.member.id!))
-          ? (await _exists(tx, LocalService.productTable, session.product.id!))
-              ? (await _exists(tx, LocalService.sessionTable, session.id!))
-                  ? await _update(tx, LocalService.sessionTable, session.id!, data)
-                  : throw MissingSessionException(session.id!)
-              : throw MissingProductException(session.product.id!)
-          : throw MissingMemberException(session.product.member.id!);
+      (await _exists(tx, LocalService.memberTable, s.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, s.product.id!))
+              ? (await _exists(tx, LocalService.sessionTable, s.id!))
+                  ? await _update(tx, LocalService.sessionTable, s.id!, data)
+                  : throw MissingSessionException(s.id!)
+              : throw MissingProductException(s.product.id!)
+          : throw MissingMemberException(s.product.member.id!);
     });
-    return session;
+    return s;
   }
 
   @override
@@ -280,6 +279,51 @@ class PowerSyncService implements DatabaseService {
           : throw MissingMemberException(s.product.member.id!);
     });
     return s;
+  }
+
+  // Presence ───────────────────────────────────────────────────────────────
+  @override
+  Future<Presence> createPresence(Presence p) async {
+    final data = LocalService.presenceToLocal(p, make: true);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, p.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, p.product.id!))
+              ? (await _exists(tx, LocalService.sessionTable, p.id!))
+                  ? await _create(tx, LocalService.presenceTable, data)
+                  : throw MissingSessionException(p.id!)
+              : throw MissingProductException(p.product.id!)
+          : throw MissingMemberException(p.product.member.id!);
+    });
+    return p;
+  }
+
+  @override
+  Future<Presence> updatePresence(Presence p) async {
+    final data = LocalService.presenceToLocal(p);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, p.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, p.product.id!))
+              ? (await _exists(tx, LocalService.presenceTable, p.id!))
+                  ? await _update(tx, LocalService.presenceTable, p.id!, data)
+                  : throw MissingPresenceException(p.id!)
+              : throw MissingProductException(p.product.id!)
+          : throw MissingMemberException(p.product.member.id!);
+    });
+    return p;
+  }
+
+  @override
+  Future<Presence> deletePresence(Presence p) async {
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, p.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, p.product.id!))
+              ? (await _exists(tx, LocalService.presenceTable, p.id!))
+                  ? await _delete(tx, LocalService.presenceTable, [p.id!])
+                  : throw MissingPresenceException(p.id!)
+              : throw MissingProductException(p.product.id!)
+          : throw MissingMemberException(p.product.member.id!);
+    });
+    return p;
   }
 
   // Meeting ───────────────────────────────────────────────────────────────
@@ -356,7 +400,8 @@ class PowerSyncService implements DatabaseService {
     register.buildProducts(await listProducts());
   }
 
-  Future<List<Meeting>> listMeeting() async {
+  @override
+  Future<List<Meeting>> listMeetings() async {
     final rows = await db.getAll("""
       SELECT * FROM ${LocalService.meetingTable} 
       ORDER BY ${LocalService.meetingColumnStart}
@@ -367,22 +412,44 @@ class PowerSyncService implements DatabaseService {
         .toList();
   }
 
-  Future<List<Session>> listSession() async {
+  @override
+  Future<List<Presence>> listPresences() async {
     final rows = await db.getAll("""
-      SELECT * FROM ${LocalService.sessionTable}
-      ORDER BY ${LocalService.sessionColumnStart}
+      SELECT * FROM ${LocalService.presenceTable}
+      ORDER BY ${LocalService.presenceColumnStart}
     """);
     return rows
-        .map((row) => LocalService.sessionFromLocal(DataMap.from(row)))
-        .whereType<Session>()
+        .map((row) => LocalService.presenceFromLocal(DataMap.from(row)))
+        .whereType<Presence>()
         .toList();
   }
 
   @override
   Future<void> buildSchedule(ScheduleSource schedule) async {
     if (!db.currentStatus.hasSynced!) await db.waitForFirstSync();
-    schedule.buildMeeting(await listMeeting());
-    schedule.buildSession(await listSession());
+    schedule.buildMeetings(await listMeetings());
+    schedule.buildPresences(await listPresences());
+  }
+
+  @override
+  Future<List<Session>> listSessions(Member member) async {
+    final ids = member.products.map((p) => p.id!).toList();
+    if (ids.isEmpty) return [];
+    final placeholders = List.filled(ids.length, '?').join(', ');
+    final rows = await db.getAll(
+      'SELECT * FROM ${LocalService.sessionTable} '
+      'WHERE ${LocalService.sessionColumnProductId} IN ($placeholders)',
+      ids,
+    );
+    return rows
+        .map((row) => LocalService.sessionFromLocal(DataMap.from(row)))
+        .toList();
+  }
+
+  @override
+  Future<void> buildPersonal(PersonalSource personal) async {
+    if (!db.currentStatus.hasSynced!) await db.waitForFirstSync();
+    personal.buildSessions(await listSessions(personal.member));
   }
 
   // Watchers ───────────────────────────────────────────────────────────────
@@ -429,12 +496,12 @@ class PowerSyncService implements DatabaseService {
       );
 
   @override
-  Stream<DatabaseData<Session>> watchSessions(ScheduleSource schedule) =>
-      _watch<Session>(
-        'SELECT * FROM ${LocalService.sessionTable} '
-        'ORDER BY ${LocalService.sessionColumnStart}',
-        LocalService.sessionFromLocal,
-        schedule.sessionSource,
+  Stream<DatabaseData<Presence>> watchPresences(ScheduleSource schedule) =>
+      _watch<Presence>(
+        'SELECT * FROM ${LocalService.presenceTable} '
+        'ORDER BY ${LocalService.presenceColumnStart}',
+        LocalService.presenceFromLocal,
+        schedule.presenceSource,
       );
 }
 
@@ -466,7 +533,7 @@ class SupabaseConnector extends PowerSyncBackendConnector {
             break;
         }
       } on flt_supabase.PostgrestException catch (e) {
-        debugPrint('Upload rifiutato [${e.code}] ${operation.table}: ${e.message}');
+        debugPrint('Upload failed [${e.code}] ${operation.table}: ${e.message}');
         if (e.code != null) {
           await transaction.complete();
         } else {
@@ -479,11 +546,11 @@ class SupabaseConnector extends PowerSyncBackendConnector {
 
   @override
   Future<PowerSyncCredentials?> fetchCredentials() async {
-    final session = supabase.session;
-    if (session == null) return null;
+    final supabaseSession = supabase.session;
+    if (supabaseSession == null) return null;
     return PowerSyncCredentials(
       endpoint: "https://6aa00e7f8453e7cf8335537d.powersync.journeyapps.com",
-      token: session.accessToken,
+      token: supabaseSession.accessToken,
     );
   }
 }

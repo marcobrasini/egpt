@@ -60,9 +60,11 @@ dependencies:
   path: ^1.9.1
   sqlite3: ^3.5.2
   powersync: ^2.4.0
-  flutter_bloc: ^9.1.1
-  equatable: ^2.1.0
   collection: ^1.19.1
+  meta: ^1.17.0
+  equatable: ^2.1.0
+  sqlite_async: ^0.14.5
+  timezone: ^0.11.1
 
 dev_dependencies:
   flutter_test:

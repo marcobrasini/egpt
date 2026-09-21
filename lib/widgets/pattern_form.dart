@@ -1,9 +1,10 @@
+import 'package:egpt/utils/timezone.dart';
 import 'package:flutter/material.dart';
+import 'package:calendar/calendar.dart';
+import 'package:egpt/models/models.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
-import 'package:calendar/calendar.dart';
-import '../../models/product.dart';
-import '../../typedef.dart';
+import 'package:egpt/types.dart';
 
 
 class PatternForm extends StatefulWidget {
@@ -40,7 +41,10 @@ class PatternFormState extends State<PatternForm> {
       final data = DataMap.from(patternForm!.value);
       return {
         "pattern": (_repeat)
-            ? Pattern(type: PatternType.weekly, until: data["until"])
+            ? Pattern(
+              type: PatternType.weekly,
+              until: (data["until"] as DateTime).tzToUtc()
+            )
             : null,
       };
     }

@@ -1,9 +1,9 @@
+import 'package:egpt/utils/timezone.dart';
+import 'package:meta/meta.dart';
 import 'package:calendar/calendar.dart';
-import '../sources/source_register.dart';
-import '../typedef.dart';
-import 'fixture.dart';
-import 'product.dart';
-import 'member.dart';
+import 'package:egpt/sources/sources.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/types.dart';
 
 
 typedef MeetingType = EventType;
@@ -11,92 +11,85 @@ typedef MeetingType = EventType;
 
 class Meeting extends Event implements EGPTItem {
   static final register = RegisterSource();
+  static final schedule = ScheduleSource();
 
-  final Product product;
-
-  Member get member => product.member;
-  Date get date => start.date;
-  Time get from => start.time;
-  Time get to => stop.time;
-  String? get patternRule => pattern?.toICSString();
-  bool get isRepeating => id != null && pattern != null;
-
-  DateTime? get patternUntil => pattern?.until;
-  void patternConclude(DateTime until) => pattern?.until = until;
-
-  Set<DateTime>? get exceptionsList => pattern?.exceptions;
-  void exceptionInsert(DateTime datetime) => pattern?.exceptions.add(datetime);
-  void exceptionRemove(DateTime datetime) =>
-      pattern?.exceptions.remove(datetime);
-  void exceptionShift(Duration duration) {
-    final shifted = pattern!.exceptions.map((e) => e.add(duration)).toSet();
-    pattern!.exceptions = shifted;
-  }
+  final String memberId;
+  final String productId;
 
   Meeting({
     super.id,
-    required this.product,
+    required this.productId,
     required super.start,
-    required DateTime super.stop,
+    required super.stop,
     super.pattern,
     super.parentId,
-  }) : super(
-    subject: product.member.name,
-    color: product.member.color,
+  }) : memberId = register.product(productId).member.id!, super(
+    subject: register.product(productId).member.name,
+    color: register.product(productId).member.color,
   );
 
   factory Meeting.make({
     String? id,
-    required Map<String, dynamic> data,
+    required DataMap data,
   }) => Meeting(
     id: id,
-    product: data['product'],
+    productId: data['productId'],
+    parentId: data['parentId'],
+    pattern: data['pattern'],
     start: data['start'],
     stop: data['stop'],
-    pattern: data['pattern'],
-    parentId: data['parentId'],
   );
-
-  factory Meeting.build({
-    required String id,
-    required String productId,
-    required DateTime start,
-    required DateTime stop,
-    String? parentId,
-    String? patternRule,
-  }) => Meeting(
-    id: id,
-    product: register.product(productId),
-    start: start,
-    stop: stop,
-    parentId: parentId,
-    pattern: (patternRule != null)
-        ? Pattern.fromICSString(patternRule)
-        : null,
-  );
-
-  Meeting copy() => Meeting.make(id: id, data: get());
 
   @override
-  Map<String, dynamic> get() => {
+  DataMap get() => {
     ...super.get(),
-    "product": product,
+    'productId': productId,
   };
 
   @override
-  Meeting set(Map<String, dynamic> data) {
-    super.set(data);
-    return this;
-  }
+  Meeting set(DataMap data) => Meeting(
+    id: id,
+    productId: productId,
+    parentId: data['parentId'] ?? parentId,
+    pattern: data['pattern'] ?? pattern,
+    start: data['start'] ?? start,
+    stop: data['stop'] ?? stop,
+  );
 
-  Meeting shift(Duration difference, Duration? duration) {
-    if (pattern != null) exceptionShift(difference);
-    final shifted = start.add(difference);
-    return set({
-        "start": shifted,
-        "stop": shifted.add(duration ?? this.duration),
-    });
-  }
+  @override
+  Meeting copy() => Meeting.make(id: id, data: get());
+
+  Member get member => register.member(memberId);
+  Product get product => register.product(productId, memberId);
+
+  Date get date => start.date;
+  Time get from => start.time;
+  Time get to => stop.time;
+
+  String? get patternRule => pattern?.toICSString();
+  bool get isRepeating => id != null && pattern != null;
+
+  DateTime? get patternUntil => pattern?.until;
+  Set<DateTime>? get exceptionsList => pattern?.exceptions;
+
+  @useResult
+  Meeting setPatternUntil(DateTime until) =>
+      set({'pattern': pattern?.setUntil(until.tzToUtc())});
+
+  @useResult
+  Meeting addPatternException(DateTime datetime) =>
+      set({'pattern': pattern?.addException(datetime.tzToUtc())});
+
+  @useResult
+  Meeting delPatternException(DateTime datetime) =>
+      set({'pattern': pattern?.delException(datetime.tzToUtc())});
+
+  @useResult
+  Meeting shift(Duration variation, Duration? duration) => set({
+    'start':    start.add(variation),
+    'stop':     start.add(variation).add(duration ?? this.duration),
+    'pattern':  pattern?.shift(variation),
+  });
 
   bool get isSignificant {
     if (isRepeating) {
@@ -127,33 +120,30 @@ class Meeting extends Event implements EGPTItem {
   }
 
   @override
-  Meeting instance([Map<String, dynamic>? data]) => Meeting.make(data: {
-    ...get(),
-    ...data ?? {},
+  List<Meeting> expand(DateTime? from, DateTime? to) =>
+      super.expand(from ?? product.start, to ?? product.stop).cast<Meeting>();
+
+  @override
+  Meeting instance(Fixture fixture) => Meeting.make(data: {
+    ...get(), ...fixture.get(),
+    "pattern": pattern,
     "parentId": id,
   });
 
-  Meeting? exception(Meeting instance, Fixture fixture) {
-    if (pattern == null) return null;
-    final meeting = Meeting.make(data: {
-        ...instance.get(),
-        ...fixture.get(),
-        "pattern": null,
-      },
-    );
-    exceptionInsert(instance.start);
-    return meeting;
-  }
+  @override
+  Meeting exception(Fixture fixture) => Meeting.make(data: {
+    ...get(), ...fixture.get(),
+    "pattern": null,
+    "parentId": id ?? parentId,
+  });
 
-  Meeting? deviation(Meeting instance, Fixture fixture) {
-    if (pattern == null) return null;
-    final meeting = Meeting.make(data: {
-      ...instance.get(),
-      ...fixture.get(),
-      "pattern": Pattern(type: pattern!.type, until: patternUntil),
-    });
-    patternConclude(instance.start);
-    return meeting;
-  }
+  @override
+  Meeting deviation(Fixture fixture) => Meeting.make(data: {
+    ...get(), ...fixture.get(),
+    "pattern": pattern,
+    "parentId": id ?? parentId,
+  });
 
+  @override
+  List<Object?> get props => [super.props, productId, memberId];
 }

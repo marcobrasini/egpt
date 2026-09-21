@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:egpt/types.dart';
 import 'api/provider_service.dart';
 import 'api/auth_service.dart';
-import '../typedef.dart';
 
 
 class SupabaseService extends ChangeNotifier implements AuthService {
@@ -52,7 +52,7 @@ class SupabaseService extends ChangeNotifier implements AuthService {
   }
 
   @override
-  Future<String?> signInWith(ProviderService provider) async {
+  Future<String?> signInWith({required ProviderService provider}) async {
     try {
       final tokens = await provider.authenticate();
       await client.auth.signInWithIdToken(
@@ -85,7 +85,7 @@ class SupabaseService extends ChangeNotifier implements AuthService {
 
   @override
   void dispose() {
-    _authSubscription.cancel();
+    unawaited(_authSubscription.cancel());
     super.dispose();
   }
 

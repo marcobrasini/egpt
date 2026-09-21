@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
-import "package:flutter_login/flutter_login.dart";
 import "package:provider/provider.dart";
-import "package:egpt/services/egpt_services.dart";
+import "package:flutter_login/flutter_login.dart";
+import "package:egpt/services/services.dart";
 
 
 class LoginPage extends StatelessWidget {
@@ -26,10 +26,9 @@ class LoginPage extends StatelessWidget {
             LoginProvider(
               icon: provider.icon,
               label: provider.label,
-              callback: () => services.auth.signInWith(provider),
+              callback: () => services.auth.signInWith(provider: provider),
             ),
       ],
-
       messages: LoginMessages(
         userHint: "Email",
         passwordHint: "Password",
@@ -38,14 +37,13 @@ class LoginPage extends StatelessWidget {
         recoverPasswordButton: "INVIA",
         recoverPasswordIntro: "Reimposta la tua password",
         recoverPasswordDescription:
-        "Inserisci l'email del tuo account: riceverai un link "
-            "per impostare una nuova password.",
+          "Inserisci l'email del tuo account: riceverai un link "
+          "per impostare una nuova password.",
         recoverPasswordSuccess: "Link inviato",
         goBackButton: "INDIETRO",
         flushbarTitleError: "Errore",
         flushbarTitleSuccess: "Fatto",
       ),
-
       theme: LoginTheme(
         primaryColor: Theme.of(context).colorScheme.primary,
         errorColor: Theme.of(context).colorScheme.error,

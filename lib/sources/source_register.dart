@@ -1,102 +1,129 @@
-import 'package:egpt/services/api/database_service.dart';
 import 'package:flutter/foundation.dart';
-import 'package:egpt/models/member.dart';
-import 'package:egpt/models/product.dart';
-import 'package:egpt/typedef.dart';
+import 'package:egpt/services/services.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/types.dart';
 
 
-class EGPTSource<T extends EGPTItem> implements EGPTData<T> {
-  final Map<String, T> _data = {};
+class MemberSource implements EGPTData<Member> {
+  final Map<String, Member> _data = {};
 
-  List<T> get data => _data.values.toList();
-
-  @override
-  Map<String, T> get() => _data;
+  List<Member> get data => _data.values.toList();
 
   @override
-  void set(Iterable<T> data) => _data
+  Map<String, Member> get() => _data;
+
+  @override
+  void set(Iterable<Member> data) => _data
     ..clear()
-    ..addAll({for (T item in data) item.id!: item});
+    ..addAll({for (Member item in data) item.id!: item});
 
   @override
-  void add(Iterable<T> data) {
-    for (T item in data) {
+  void add(Iterable<Member> data) {
+    for (Member item in data) {
       _data.putIfAbsent(item.id!, () => item);
     }
   }
 
   @override
-  void put(Iterable<T> data) {
-    for (T item in data) {
+  void put(Iterable<Member> data) {
+    for (Member item in data) {
       _data.update(item.id!, (_) => item);
     }
   }
 
   @override
-  void del(Iterable<T> data) {
-    for (T item in data) {
+  void del(Iterable<Member> data) {
+    for (Member item in data) {
       _data.remove(item.id!);
     }
   }
 
-  T? operator [](String id) => _data[id];
+  Member? operator [](String id) => _data[id];
 }
 
 
-class MemberSource extends EGPTSource<Member> {}
+class ProductSource implements EGPTData<Product> {
+  final Map<String, Map<String, Product>> _data = {};
 
-
-class ProductSource extends EGPTSource<Product> {
+  List<Product> get data => _data.values.expand((v) => v.values).toList();
 
   @override
-  void set(Iterable<Product> data) {
-    for (final product in data) {
-      product.member.products.add(product);
-    }
-    super.set(data);
+  Map<String, Product> get() =>
+      Map.fromEntries(_data.values.expand((v) => v.entries));
+
+  @override
+  void set(Iterable<Product> items) {
+    _data.clear();
+    add(items);
   }
 
   @override
-  void add(Iterable<Product> data) {
-    for (final product in data) {
-      product.member.products.add(product);
+  void add(Iterable<Product> items) {
+    for (final product in items) {
+      _data.update(
+        product.memberId,
+        (p) => {...p, product.id!: product},
+        ifAbsent: () => {product.id!: product},
+      );
     }
-    super.add(data);
   }
 
   @override
-  void del(Iterable<Product> data) {
-    for (final product in data) {
-      product.member.products.remove(product);
+  void put(Iterable<Product> items) {
+    for (final product in items) {
+      _data.update(
+        product.memberId,
+        (p) => {...p, product.id!: product},
+      );
     }
-    super.del(data);
   }
+
+  @override
+  void del(Iterable<Product> items) {
+    for (final product in items) {
+      _data[product.memberId]?.remove(product.id!);
+    }
+  }
+
+  List<Product>? operator [](String id) => _data[id]?.values.toList();
 }
 
 
 class RegisterSource extends ChangeNotifier {
-  static final _instance = RegisterSource._singleton();
-  RegisterSource._singleton();
+  RegisterSource._singleton(this.memberSource, this.productSource);
+  static final _instance = RegisterSource._singleton(
+    MemberSource(),
+    ProductSource(),
+  );
   factory RegisterSource() => _instance;
 
-  final MemberSource memberSource = MemberSource();
+  final MemberSource memberSource;
   List<Member> get members => memberSource.data;
-  List<String> get memberNames => members.map((m) => m.name).toList();
+  Member member(String memberId) {
+    final member = memberSource[memberId];
+    return member ?? (throw MissingMemberException(memberId));
+  }
 
-  final ProductSource productSource = ProductSource();
-  List<Product> get products => productSource.data;
-
-  Future<void> build(DatabaseService db) async {
-    memberSource.set(await db.listMembers());
-    productSource.set(await db.listProducts());
+  final ProductSource productSource;
+  List<Product> products(String memberId) => productSource[memberId] ?? [];
+  Product product(String productId, [String? memberId]) {
+    final product = (memberId == null)
+        ? productSource.data.where((p) => p.id == productId).singleOrNull
+        : productSource._data[memberId]?[productId];
+    return product ?? (throw MissingProductException(productId));
   }
 
   void buildMembers(List<Member> members) => memberSource.set(members);
   void buildProducts(List<Product> products) => productSource.set(products);
+  Future<void> build(DatabaseService database) async {
+    buildMembers(await database.listMembers());
+    buildProducts(await database.listProducts());
+    notifyListeners();
+  }
 
-  Member member(String id) =>
-      memberSource[id] ?? (throw MissingMemberException(id));
+  List<String> get memberNames => members.map((m) => m.name).toList();
 
+  // Member ───────────────────────────────────────────────────────────────────
   Member insertMember(Member member) {
     memberSource.add([member]);
     notifyListeners();
@@ -110,15 +137,13 @@ class RegisterSource extends ChangeNotifier {
   }
 
   Member removeMember(Member member) {
-    productSource.del(products.where((p) => p.member.id == member.id));
+    productSource._data.remove(member.id);
     memberSource.del([member]);
     notifyListeners();
     return member;
   }
 
-  Product product(String id) =>
-      productSource[id] ?? (throw MissingProductException(id));
-
+  // Product ──────────────────────────────────────────────────────────────────
   Product insertProduct(Product product) {
     productSource.add([product]);
     notifyListeners();
@@ -135,5 +160,21 @@ class RegisterSource extends ChangeNotifier {
     productSource.del([product]);
     notifyListeners();
     return product;
+  }
+
+  // Presence ─────────────────────────────────────────────────────────────────
+  Session insertSession(Session session) {
+    notifyListeners();
+    return session;
+  }
+
+  Session modifySession(Session session) {
+    notifyListeners();
+    return session;
+  }
+
+  Session removeSession(Session session) {
+    notifyListeners();
+    return session;
   }
 }

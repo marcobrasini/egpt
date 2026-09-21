@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/egpt_services.dart';
@@ -22,7 +24,7 @@ class _UserPageState extends State<UserPage> {
   void initState() {
     super.initState();
     user = UserSource(services: context.read<EGPTServices>());
-    user.build();
+    unawaited(user.build());
   }
 
   @override

@@ -1,11 +1,13 @@
+import "package:egpt/models/session.dart";
+
 import "../../sources/source_database.dart";
 import "../../sources/source_register.dart";
 import "../../sources/source_schedule.dart";
-import "../../sources/source_training.dart";
+import "../../sources/source_personal.dart";
 import "../../models/member.dart";
 import "../../models/product.dart";
 import "../../models/meeting.dart";
-import "../../models/session.dart";
+import "../../models/presence.dart";
 
 
 abstract class DatabaseService {
@@ -21,22 +23,30 @@ abstract class DatabaseService {
   Future<Product> updateProduct(Product product);
   Future<Product> deleteProduct(Product product);
 
-  Future<Meeting> createMeeting(Meeting m);
-  Future<Meeting> updateMeeting(Meeting m);
-  Future<Meeting> deleteMeeting(Meeting m);
-
   Future<Session> createSession(Session session);
   Future<Session> updateSession(Session session);
   Future<Session> deleteSession(Session session);
 
+  Future<Meeting> createMeeting(Meeting m);
+  Future<Meeting> updateMeeting(Meeting m);
+  Future<Meeting> deleteMeeting(Meeting m);
+
+  Future<Presence> createPresence(Presence p);
+  Future<Presence> updatePresence(Presence p);
+  Future<Presence> deletePresence(Presence p);
+
   Future<List<Member>> listMembers();
   Future<List<Product>> listProducts();
+  Future<List<Meeting>> listMeetings();
+  Future<List<Presence>> listPresences();
+  Future<List<Session>> listSessions(Member member);
 
   Future<void> buildRegister(RegisterSource register);
   Future<void> buildSchedule(ScheduleSource schedule);
+  Future<void> buildPersonal(PersonalSource personal);
 
   Stream<DatabaseData<Member>> watchMembers(RegisterSource register);
   Stream<DatabaseData<Product>> watchProducts(RegisterSource register);
   Stream<DatabaseData<Meeting>> watchMeetings(ScheduleSource schedule);
-  Stream<DatabaseData<Session>> watchSessions(ScheduleSource schedule);
+  Stream<DatabaseData<Presence>> watchPresences(ScheduleSource schedule);
 }

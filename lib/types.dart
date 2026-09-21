@@ -1,5 +1,5 @@
-import 'package:egpt/sources/source_register.dart';
-import 'package:equatable/equatable.dart';
+import 'package:egpt/sources/sources.dart';
+
 
 typedef DataMap = Map<String, dynamic>;
 
@@ -8,6 +8,7 @@ typedef EGPTMake<T> = T Function(DataMap);
 
 abstract interface class EGPTItem {
   static final register = RegisterSource();
+  static final schedule = ScheduleSource();
 
   final String? id;
   EGPTItem({this.id});
@@ -16,6 +17,9 @@ abstract interface class EGPTItem {
   EGPTItem set(DataMap data);
 }
 
+extension Let<T extends EGPTItem> on T {
+  R let<R>(R Function(T) f) => f(this);
+}
 
 abstract interface class EGPTData<T extends EGPTItem> {
   Map<String, T> get();
@@ -40,16 +44,27 @@ class MissingProductException extends RegisterException {
   final String? id;
 }
 
+
 class ScheduleException implements Exception {
   const ScheduleException();
 }
 
-class MissingSessionException extends ScheduleException {
-  const MissingSessionException(this.id);
+class MissingPresenceException extends ScheduleException {
+  const MissingPresenceException(this.id);
   final String? id;
 }
 
 class MissingMeetingException extends ScheduleException {
   const MissingMeetingException(this.id);
+  final String? id;
+}
+
+
+class PersonalException implements Exception {
+  const PersonalException();
+}
+
+class MissingSessionException extends PersonalException {
+  const MissingSessionException(this.id);
   final String? id;
 }

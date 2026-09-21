@@ -1,4 +1,4 @@
-import 'package:egpt/typedef.dart';
+import 'package:egpt/types.dart';
 
 
 class DatabaseData<T extends EGPTItem> {

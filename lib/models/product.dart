@@ -1,68 +1,64 @@
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:equatable/equatable.dart';
 import 'package:calendar/calendar.dart';
-import '../sources/source_register.dart';
-import '../typedef.dart';
-import 'member.dart';
+import 'package:egpt/sources/sources.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/types.dart';
 
 
-class Product implements EGPTItem {
+class Product extends Equatable implements EGPTItem {
   static final register = RegisterSource();
+  static final schedule = ScheduleSource();
   static const _warning = 10;
 
   @override final String? id;
-  final Member member;
-  String summary;
-  int length;
-  Date start;
-  Date stop;
-  int todo;
-  int redo;
-  int done;
+  final String memberId;
+  final String summary;
+  final int length;
+  final Date start;
+  final Date stop;
 
-  Product({
+  const Product({
     this.id,
-    required this.member,
+    required this.memberId,
     required this.summary,
     required this.length,
     required this.start,
     required this.stop,
-    this.todo = 0,
-    this.redo = 0,
-    this.done = 0,
   });
 
   factory Product.make({
     String? id,
-    required Map<String, dynamic> data
+    required DataMap data
   }) => Product(
     id: id,
-    member: data['member'],
+    memberId: data['memberId'],
     summary: data['summary'],
     length: data['length'],
     start: data['start'],
     stop: data['stop'],
   );
 
-  factory Product.build({
-    required String id,
-    required String memberId,
-    required String summary,
-    required int length,
-    required Date start,
-    required Date stop,
-  }) => Product(
-    id: id,
-    member: register.member(memberId),
-    summary: summary,
-    length: length,
-    start: start,
-    stop: stop,
-  );
+  // factory Product.build({
+  //   required String id,
+  //   required String memberId,
+  //   required String summary,
+  //   required int length,
+  //   required Date start,
+  //   required Date stop,
+  // }) => Product(
+  //   id: id,
+  //   memberId: memberId,
+  //   summary: summary,
+  //   length: length,
+  //   start: start,
+  //   stop: stop,
+  // );
 
   @override
-  Map<String, dynamic> get() => {
-    'member': member,
+  DataMap get() => {
+    'id': id,
+    'memberId': memberId,
     'summary': summary,
     'length': length,
     'start': start,
@@ -70,13 +66,23 @@ class Product implements EGPTItem {
   };
 
   @override
-  Product set(Map<String, dynamic> data) {
-    length = data['length'];
-    summary = data['summary'];
-    start = data['start'];
-    stop = data['stop'];
-    return this;
-  }
+  Product set(DataMap data) => Product(
+    id: id,
+    memberId: memberId,
+    summary: data['summary'] ?? summary,
+    length: data['length'] ?? length,
+    start: data['start'] ?? start,
+    stop: data['stop'] ?? stop,
+  );
+
+  Member get member => register.member(memberId);
+
+  List<Meeting> get meetings => schedule.meetings.where((m) => m.productId == id).toList();
+
+  List<Presence> get presences => schedule.presences.where((s) => s.productId == id).toList();
+
+  int get redo => presences.where((s) => !s.presence).length;
+  int get done => presences.where((s) =>  s.presence).length;
 
   int get duration => stop % start;
   int get pastDays => min(max(Date.now() % start, 0), duration);
@@ -90,17 +96,6 @@ class Product implements EGPTItem {
   bool isOngoing() => isStarted() && !isExpired();
   bool isValid() => isOngoing() && !isComplete();
 
-  Color statusColor() {
-    if (isComplete()) {
-      return Colors.green;
-    } else if (isExpired()) {
-      return Colors.red;
-    } else if (isWarning()) {
-      return Colors.yellow;
-    } else if (isOngoing()) {
-      return Colors.blue;
-    } else {
-      return Colors.grey;
-    }
-  }
+  @override
+  List<Object?> get props => [id, memberId, summary, length, start, stop];
 }

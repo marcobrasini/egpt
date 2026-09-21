@@ -4,10 +4,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/providers/google_provider.dart';
-import 'services/api/auth_service.dart';
-import 'services/supabase_service.dart';
-import 'services/powersync_service.dart';
-import 'services/egpt_services.dart';
+import 'services/services.dart';
+import 'utils/timezone.dart';
 import 'auth.dart';
 
 
@@ -17,13 +15,15 @@ void main() async {
   await dotenv.load(fileName: '.env');
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    publishableKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
   final supabase = SupabaseService();
   final database = PowerSyncService(supabase);
   await database.open();
 
+  initTimeZones('Europe/Rome');
+  
   runApp(EGPTApp(
     services: EGPTServices(
       auth: supabase,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/meeting.dart';
+import 'package:egpt/models/models.dart';
 
 
 class PresenceTile extends StatefulWidget {

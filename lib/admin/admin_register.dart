@@ -1,13 +1,11 @@
-import 'package:egpt/admin/admin_training.dart';
-import 'package:egpt/admin/source_admin.dart';
-import 'package:egpt/admin/widgets/dialog_form.dart';
-import 'package:egpt/admin/widgets/member_tile.dart';
-import 'package:egpt/admin/widgets/member_form.dart';
-import 'package:egpt/models/member.dart';
-import 'package:egpt/sources/source_register.dart';
-import 'package:egpt/sources/source_training.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/sources/sources.dart';
+import 'package:egpt/widgets/forms.dart';
+import 'widgets/register_tile.dart';
+import 'admin_personal.dart';
+import 'source_admin.dart';
 
 
 class RegisterPage extends StatefulWidget {
@@ -23,7 +21,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _searchController = TextEditingController();
   String _pattern = "";
 
-  List<Member> _filter(List<Member> members) {
+  List<Member> listMembers(List<Member> members) {
     if (_pattern.isEmpty) return members;
     final pattern = _pattern.toLowerCase();
     return members
@@ -51,14 +49,14 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Future<void> editMember(BuildContext context, Member member) async {
-    Navigator.push(
+  Future<void> editMember(BuildContext context, String memberId) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider(
-          create: (context) => TrainingSource(admin, memberId: member.id!),
-          child: AdminTraining(),
-        ),
+        builder: (context) => ChangeNotifierProvider<AdminSource>.value(
+          value: admin,
+          child: AdminPersonal(memberId),
+        )
       ),
     );
   }
@@ -67,76 +65,74 @@ class _RegisterPageState extends State<RegisterPage> {
   void initState() {
     super.initState();
     admin = context.read<AdminSource>();
-    register = context.read<RegisterSource>();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return RefreshIndicator.adaptive(
-      onRefresh: () => admin.build(),
-      child: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            floating: true,
-            snap: true,
-            automaticallyImplyLeading: false,
-            automaticallyImplyActions: false,
-            centerTitle: true,
-            title: Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsetsGeometry.all(12.0),
-                    child: TextField(
-                      controller: _searchController,
-                      showCursor: true,
-                      decoration: InputDecoration(
-                        labelText: 'Cerca',
-                        icon: Icon(Icons.search),
-                      ),
-                      onChanged: (value) => setState(() => _pattern = value),
+  Widget build(BuildContext context) => RefreshIndicator.adaptive(
+    onRefresh: () => admin.build(),
+    child: CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverAppBar(
+          floating: true,
+          snap: true,
+          automaticallyImplyLeading: false,
+          automaticallyImplyActions: false,
+          centerTitle: true,
+          title: Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsetsGeometry.all(12.0),
+                  child: TextField(
+                    controller: _searchController,
+                    showCursor: true,
+                    decoration: InputDecoration(
+                      labelText: 'Cerca',
+                      icon: Icon(Icons.search),
                     ),
+                    onChanged: (value) => setState(() => _pattern = value),
                   ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.person_add),
-                  onPressed: () => makeMember(context),
-                ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: Icon(Icons.person_add),
+                onPressed: () => makeMember(context),
+              ),
+            ],
           ),
-          Consumer<RegisterSource>(
-            builder: (context, register, _) {
-              final members = _filter(register.members);
-              if (members.isEmpty) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Text(
-                      _pattern.isEmpty
-                          ? "Nessun membro"
-                          : "Nessuna corrispondenza",
-                      style: TextStyle(fontSize: 16.0, color: scheme.outline),
+        ),
+        Selector<RegisterSource, List<String>>(
+          selector: (_, register) => listMembers(admin.register.members)
+              .map((m) => m.id!)
+              .toList(),
+          builder: (context, ids, _) {
+            if (ids.isEmpty) {
+              return SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(_pattern.isEmpty
+                      ? "Nessun membro"
+                      : "Nessuna corrispondenza",
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      color: Theme.of(context).colorScheme.outline,
                     ),
                   ),
-                );
-              }
-              return SliverList.builder(
-                itemCount: members.length,
-                itemBuilder: (context, index) {
-                  final member = members[index];
-                  return MemberTile(
-                    member,
-                    setMember: () => editMember(context, member),
-                  );
-                },
+                ),
               );
-            },
-          ),
-        ],
-      ),
-    );
-  }
+            }
+            return SliverList.builder(
+              itemCount: ids.length,
+              itemBuilder: (context, index) =>
+                RegisterTile(ids[index],
+                  open: () => editMember(context, ids[index]),
+                  key: ValueKey(ids[index]),
+                ),
+            );
+          },
+        ),
+      ],
+    ),
+  );
 }

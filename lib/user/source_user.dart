@@ -8,8 +8,8 @@ import '../sources/source_schedule.dart';
 import '../models/meeting.dart';
 import '../models/member.dart';
 import '../models/product.dart';
-import '../models/session.dart';
-import '../typedef.dart';
+import '../models/presence.dart';
+import '../types.dart';
 
 
 class UserSource extends ChangeNotifier {
@@ -21,7 +21,7 @@ class UserSource extends ChangeNotifier {
   DatabaseService get db => services.database;
 
   // Stato ─────────────────────────────────────────────────────────────────
-  static const _streams = {'members', 'products', 'meetings', 'sessions'};
+  static const _streams = {'members', 'products', 'meetings', 'presences'};
   final Set<String> _received = {};
   final List<StreamSubscription> _subscriptions = [];
   bool _building = false;
@@ -51,7 +51,7 @@ class UserSource extends ChangeNotifier {
     _listen<Member>('members', db.watchMembers(register));
     _listen<Product>('products', db.watchProducts(register));
     _listen<Meeting>('meetings', db.watchMeetings(schedule));
-    _listen<Session>('sessions', db.watchSessions(schedule));
+    _listen<Presence>('presences', db.watchPresences(schedule));
   }
 
   void _listen<T extends EGPTItem>(

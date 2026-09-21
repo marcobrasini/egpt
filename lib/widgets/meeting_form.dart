@@ -1,17 +1,11 @@
-import 'package:egpt/sources/source_register.dart';
 import 'package:flutter/material.dart';
 import 'package:calendar/calendar.dart';
-import 'package:egpt/models/member.dart';
-import 'package:egpt/models/product.dart';
-import 'package:egpt/models/meeting.dart';
-import 'package:egpt/admin/source_admin.dart';
-import 'package:egpt/admin/widgets/fixture_form.dart';
-import 'package:egpt/admin/widgets/pattern_form.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:form_builder_extra_fields/form_builder_extra_fields.dart';
-import 'package:googleapis/mybusinessaccountmanagement/v1.dart';
-import 'package:provider/provider.dart';
+import 'package:egpt/sources/sources.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/widgets/forms.dart';
 
 
 class MeetingForm extends StatefulWidget {
@@ -73,12 +67,12 @@ class MeetingFormState extends State<MeetingForm> {
       .toList(growable: false);
   Widget memberForm() => FormBuilderTypeAhead<String>(
     key: ValueKey(_member),
-    name: 'member',
+    name: 'memberId',
     enabled: _editing && _making,
     decoration: const InputDecoration(labelText: "Membro"),
     initialValue: _member?.name,
     itemBuilder: (context, name) => ListTile(title: Text(name)),
-    valueTransformer: (value) => _member,
+    valueTransformer: (value) => _member?.id!,
     validator: FormBuilderValidators.compose([
       FormBuilderValidators.required(errorText: 'Seleziona un membro.'),
     ]),
@@ -102,7 +96,7 @@ class MeetingFormState extends State<MeetingForm> {
 
   Widget productForm() => FormBuilderDropdown(
     key: ValueKey(_product),
-    name: "product",
+    name: "productId",
     enabled: _editing && _making && _member != null,
     decoration: const InputDecoration(labelText: "Abbonamento"),
     items:
@@ -117,7 +111,7 @@ class MeetingFormState extends State<MeetingForm> {
             .toList() ??
         [],
     initialValue: _product?.id,
-    valueTransformer: (value) => _product,
+    valueTransformer: (value) => _product?.id!,
     validator: FormBuilderValidators.compose([
       FormBuilderValidators.required(errorText: 'Seleziona un abbonamento.'),
     ]),

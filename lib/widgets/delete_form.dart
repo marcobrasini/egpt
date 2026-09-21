@@ -64,7 +64,7 @@ Future<bool> showDeleteDialog({
   final deleteForm = GlobalKey<DeleteFormState>();
   final confirm = await showDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (dialog) => AlertDialog(
       title: Text(title, textAlign: TextAlign.center),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -79,13 +79,12 @@ Future<bool> showDeleteDialog({
           icon: const Icon(Icons.delete_forever),
           label: const Text("Elimina", style: TextStyle(fontSize: 16)),
           style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(dialogContext).colorScheme.error,
-            foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            backgroundColor: Theme.of(dialog).colorScheme.error,
+            foregroundColor: Theme.of(dialog).colorScheme.onError,
           ),
           onPressed: () {
             if (deleteForm.currentState?.confirm case final confirmation?) {
-              print(confirmation);
-              Navigator.of(dialogContext).pop(confirmation);
+              Navigator.of(dialog).pop(confirmation);
             }
           },
         ),

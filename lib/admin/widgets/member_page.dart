@@ -1,11 +1,9 @@
-import 'package:egpt/sources/source_register.dart';
-import 'package:egpt/sources/source_training.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/member.dart';
-import '../source_admin.dart';
-import 'member_form.dart';
-import 'delete_form.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/widgets/forms.dart';
+import 'package:egpt/sources/sources.dart';
+
 
 class MemberPage extends StatefulWidget {
   const MemberPage(this.member, {super.key});
@@ -18,13 +16,14 @@ class MemberPage extends StatefulWidget {
 
 class _MemberPageState extends State<MemberPage> {
   late final GlobalKey<MemberFormState> memberForm;
+  late final PersonalSource personal;
   bool _editing = false;
-  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
     memberForm = GlobalKey<MemberFormState>();
+    personal = context.read<PersonalSource>();
   }
 
   @override
@@ -43,15 +42,10 @@ class _MemberPageState extends State<MemberPage> {
               onPressed: () async {
                 if (_editing) {
                   if (memberForm.currentState?.data case final data?) {
-                    if (_saving) return ; _saving = true;
-                    final training = context.read<TrainingSource>();
-                    await training.modifyMember(widget.member.set(data));
+                    await personal.modifyMember(widget.member.set(data));
                   }
                 }
-                setState(() {
-                  _saving = false;
-                  _editing = !_editing;
-                });
+                setState(() => _editing = !_editing);
               },
             ),
           ],
@@ -84,8 +78,7 @@ class _MemberPageState extends State<MemberPage> {
                       "egpt/${widget.member.name}".replaceAll(" ", ""),
                   );
                   if (confirm && context.mounted) {
-                    final training = context.read<TrainingSource>();
-                    await training.removeMember(widget.member);
+                    await personal.removeMember(widget.member);
                   }
                 }
               ),

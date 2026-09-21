@@ -1,11 +1,10 @@
-import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:googleapis/calendar/v3.dart' as gcal;
 import 'package:calendar/calendar.dart';
 import '../api/provider_service.dart';
 import '../api/calendar_service.dart';
-import '../../models/meeting.dart';
 import 'google_provider.dart';
 
 
@@ -69,7 +68,7 @@ class GoogleCalendar implements CalendarService {
         pageToken: page,
       );
       for (final event in response.items ?? const <Event>[]) {
-        events.add(EGPTfromGoogle(event as gcal.Event));
+        events.add(fromGoogle(event as gcal.Event));
       }
       page = response.nextPageToken;
     } while (page != null);
@@ -82,7 +81,7 @@ class GoogleCalendar implements CalendarService {
       '${hex.substring(8,12)}-${hex.substring(12,16)}-${hex.substring(16,20)}'
       '-${hex.substring(20)}';
 
-  static Event EGPTfromGoogle(gcal.Event event) => Event(
+  static Event fromGoogle(gcal.Event event) => Event(
     id: event.id!,
     subject: event.summary!,
     color: Colors.grey,

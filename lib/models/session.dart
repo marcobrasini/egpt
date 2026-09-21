@@ -1,63 +1,63 @@
-import '../sources/source_register.dart';
-import '../typedef.dart';
-import 'meeting.dart';
+import 'package:equatable/equatable.dart';
+import 'package:egpt/sources/sources.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/types.dart';
 
 
-class Session extends Meeting implements EGPTItem {
+class Session extends Equatable implements EGPTItem {
   static final register = RegisterSource();
+  static final schedule = ScheduleSource();
 
-  final bool presence;
+  @override final String? id;
+  final String memberId;
+  final String productId;
+  final Presence? presence;
+
+  Member get member => register.member(memberId);
+  Product get product => register.product(productId, memberId);
+  String? get presenceId => presence?.id;
 
   Session({
-    required super.id,
-    required super.product,
-    required super.start,
-    required super.stop,
-    required this.presence,
-  }) : super(
-    pattern: null,
-    parentId: null,
-  );
+    this.id,
+    required this.productId,
+    Presence? presence,
+  }) : memberId = register.product(productId).memberId,
+        presence = (presence != null)
+            ? Presence.make(id: id, data: presence.get())
+            : null;
 
   factory Session.make({
     String? id,
-    required Map<String, dynamic> data,
+    required DataMap data,
   }) => Session(
     id: id,
-    product: data['product'],
-    start: data['start'],
-    stop: data['stop'],
+    productId: data['productId'],
     presence: data['presence'],
   );
 
   factory Session.build({
-    String? id,
+    required String id,
     required String productId,
-    required DateTime start,
-    required DateTime stop,
-    required bool presence,
   }) => Session(
     id: id,
-    product: register.product(productId),
-    start: start,
-    stop: stop,
-    presence: presence,
-  );
-
-  factory Session.from({
-    required Meeting meeting,
-    required bool presence,
-  }) => Session(
-    id: meeting.id,
-    product: meeting.product,
-    start: meeting.start,
-    stop: meeting.stop,
-    presence: presence,
+    productId: productId,
+    presence: schedule.presenceOrNull(id),
   );
 
   @override
-  Map<String, dynamic> get() => {
-    ...super.get(),
-    "presence": presence,
+  DataMap get() => {
+    'id': id,
+    'productId': productId,
+    'presence': ?presence,
   };
+
+  @override
+  Session set(DataMap data) => Session(
+    id: id,
+    productId: productId,
+    presence: data['presence'] ?? presence,
+  );
+
+  @override
+  List<Object?> get props => [id, memberId, productId, presence?.props];
 }

@@ -19,7 +19,7 @@ abstract class AuthService extends ChangeNotifier {
 
   Future<String?> signIn({required String email, required String password});
 
-  Future<String?> signInWith(ProviderService provider);
+  Future<String?> signInWith({required ProviderService provider});
 
   Future<String?> recoverPassword({required String email});
 

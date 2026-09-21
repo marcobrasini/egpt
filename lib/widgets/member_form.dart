@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:calendar/calendar.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:form_builder_image_picker/form_builder_image_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:calendar/calendar.dart';
-import '../../models/member.dart';
-import '../../typedef.dart';
+import 'package:egpt/models/models.dart';
+import 'package:egpt/types.dart';
 
 
 const colorSize = 250.0;
@@ -36,8 +36,6 @@ class MemberFormState extends State<MemberForm> {
   Color get _color =>
       _memberForm.currentState?.fields["color"]?.value ??
       (widget.member?.color ?? Theme.of(context).primaryColor);
-
-  String get _name => _memberForm.currentState?.fields["name"]?.value ?? "";
 
   void _defaultName(String? firstName, String? lastName) {
     final form = _memberForm.currentState;

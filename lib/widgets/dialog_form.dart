@@ -1,16 +1,18 @@
-import 'package:egpt/admin/source_admin.dart';
-import 'package:egpt/sources/source_register.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 
 typedef FormCallback<T> = Future<T?> Function(BuildContext context);
 
 
 class FormAction<T> extends StatefulWidget {
-  const FormAction(this.label, {this.onPressed, super.key});
+  const FormAction(this.label, {
+    this.onPressed,
+    this.color,
+    super.key,
+  });
 
   final String label;
+  final Color? color;
   final FormCallback<T>? onPressed;
 
   @override
@@ -45,7 +47,12 @@ class _FormActionState<T> extends State<FormAction<T>> {
               _busy = false;
             }
           },
-      child: Text(widget.label, style: const TextStyle(fontSize: 16)),
+      child: Text(widget.label,
+          style: TextStyle(
+            fontSize: 16,
+            color: widget.color,
+          )
+      ),
     );
   }
 }
