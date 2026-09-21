@@ -21,13 +21,16 @@ abstract class DatabaseService {
   Future<Product> updateProduct(Product product);
   Future<Product> deleteProduct(Product product);
 
-  Future<Meeting> createMeeting(Meeting meeting);
-  Future<Meeting> updateMeeting(Meeting meeting);
-  Future<Meeting> deleteMeeting(Meeting meeting);
+  Future<Meeting> createMeeting(Meeting m);
+  Future<Meeting> updateMeeting(Meeting m);
+  Future<Meeting> deleteMeeting(Meeting m);
 
   Future<Session> createSession(Session session);
   Future<Session> updateSession(Session session);
   Future<Session> deleteSession(Session session);
+
+  Future<List<Member>> listMembers();
+  Future<List<Product>> listProducts();
 
   Future<void> buildRegister(RegisterSource register);
   Future<void> buildSchedule(ScheduleSource schedule);

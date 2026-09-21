@@ -184,7 +184,6 @@ class MemberFormState extends State<MemberForm> {
     initialValue: widget.member?.birth,
     valueTransformer: (value) => value?.date,
     validator: FormBuilderValidators.compose([
-      FormBuilderValidators.required(),
       FormBuilderValidators.dateTime(),
     ]),
   );
@@ -219,7 +218,7 @@ class MemberFormState extends State<MemberForm> {
   Widget build(BuildContext context) => FormBuilder(
     key: _memberForm,
     child: Column(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: MainAxisSize.max,
       children: [
         nameForm(),
         Stack(

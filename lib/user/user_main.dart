@@ -37,7 +37,7 @@ class _UserPageState extends State<UserPage> {
       value: user,
       child: Builder(
         builder: (context) {
-          return (user.isLoading)
+          return (user.loading)
             ? const Center(child: CircularProgressIndicator())
             : Scaffold(
               appBar: AppBar(

@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:powersync/sqlite_async.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as flt_supabase;
 import 'package:powersync/powersync.dart';
 import 'package:uuid/uuid.dart';
@@ -15,6 +17,7 @@ import '../models/session.dart';
 import '../typedef.dart';
 import 'local_service.dart';
 import 'supabase_service.dart';
+
 
 class PowerSyncService implements DatabaseService {
   static const _databaseFile = 'egpt-powersync.db';
@@ -118,25 +121,37 @@ class PowerSyncService implements DatabaseService {
   }
 
   // Helper ────────────────────────────────────────────────────────────────
-  Future<void> _create(String table, String id, DataMap values) async {
-    final columns = values.keys.join(', ');
-    final placeholders = List.filled(values.length, '?').join(', ');
-    await db.execute(
-      'INSERT INTO $table ($columns) VALUES ($placeholders)',
-      values.values.toList(),
+  Future<bool> _exists(SqliteReadContext ctx, String table, String? id) async {
+    if (id == null) return false;
+    final row = await ctx.getOptional(
+      'SELECT 1 FROM $table WHERE id = ? LIMIT 1',
+      [id],
     );
+    return row != null;
   }
 
-  Future<void> _update(String table, String id, DataMap values) async {
-    final setClause = values.keys.map((k) => '$k = ?').join(', ');
-    await db.execute('UPDATE $table SET $setClause WHERE id = ?', [
-      ...values.values,
-      id,
+  Future<void> _create(SqliteWriteContext ctx, String table, DataMap data) async {
+    final columns = data.keys.join(', ');
+    final placeholders = List.filled(data.length, '?').join(', ');
+    await ctx.execute(
+      'INSERT INTO $table ($columns) VALUES ($placeholders)', [
+        ...data.values
     ]);
   }
 
-  Future<void> _delete(String table, String id) async {
-    await db.execute('DELETE FROM $table WHERE id = ?', [id]);
+  Future<void> _update(SqliteWriteContext ctx, String table, String id, DataMap data) async {
+    final placeholders = data.keys.map((k) => '$k = ?').join(', ');
+    await ctx.execute('UPDATE $table SET $placeholders WHERE id = ?', [
+      ...data.values, id
+    ]);
+  }
+
+  Future<void> _delete(SqliteWriteContext ctx, String table, List<String> ids, [String column = 'id']) async {
+    if (ids.isEmpty) return;
+    final placeholders = List.filled(ids.length, '?').join(', ');
+    await ctx.execute('DELETE FROM $table WHERE $column IN ($placeholders)', [
+      ...ids
+    ]);
   }
 
   // Member ────────────────────────────────────────────────────────────────
@@ -144,21 +159,39 @@ class PowerSyncService implements DatabaseService {
   Future<Member> createMember(Member member) async {
     final id = member.id ?? Uuid().v4();
     final data = LocalService.memberToLocal(member, id: id, make: true);
-    await _create(LocalService.memberTable, id, data);
+    await db.writeTransaction((tx) async {
+      await _create(tx, LocalService.memberTable, data);
+    });
     return Member.make(id: id, data: member.get());
   }
 
   @override
   Future<Member> updateMember(Member member) async {
     final data = LocalService.memberToLocal(member);
-    await _update(LocalService.memberTable, member.id!, data);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, member.id!))
+          ? await _update(tx, LocalService.memberTable, member.id!, data)
+          : throw MissingMemberException(member.id!);
+    });
     return member;
   }
 
   @override
   Future<Member> deleteMember(Member member) async {
-    await _delete(LocalService.memberTable, member.id!);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, member.id!))
+          ? await _deleteCascadeMember(tx, member)
+          : throw MissingMemberException(member.id!);
+    });
     return member;
+  }
+
+  Future<void> _deleteCascadeMember(SqliteWriteContext tx, Member member) async {
+    final ids = member.products.map((p) => p.id!).toList();
+    await _delete(tx, LocalService.meetingTable, ids, LocalService.meetingColumnProductId);
+    await _delete(tx, LocalService.sessionTable, ids, LocalService.sessionColumnProductId);
+    await _delete(tx, LocalService.productTable, ids);
+    await _delete(tx, LocalService.memberTable, [member.id!]);
   }
 
   // Product ───────────────────────────────────────────────────────────────
@@ -166,21 +199,43 @@ class PowerSyncService implements DatabaseService {
   Future<Product> createProduct(Product product) async {
     final id = product.id ?? Uuid().v4();
     final data = LocalService.productToLocal(product, id: id, make: true);
-    await _create(LocalService.productTable, id, data);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, product.member.id!))
+          ? await _create(tx, LocalService.productTable, data)
+          : throw MissingMemberException(product.member.id!);
+    });
     return Product.make(id: id, data: product.get());
   }
 
   @override
   Future<Product> updateProduct(Product product) async {
     final data = LocalService.productToLocal(product);
-    await _update(LocalService.productTable, product.id!, data);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, product.id!))
+              ? await _update(tx, LocalService.productTable, product.id!, data)
+              : throw MissingProductException(product.id!)
+          : throw MissingMemberException(product.member.id!);
+    });
     return product;
   }
 
   @override
   Future<Product> deleteProduct(Product product) async {
-    await _delete(LocalService.productTable, product.id!);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, product.id!))
+              ? await _deleteCascadeProduct(tx, product)
+              : throw MissingProductException(product.id!)
+          : throw MissingMemberException(product.id!);
+    });
     return product;
+  }
+
+  Future<void> _deleteCascadeProduct(SqliteWriteContext tx, Product product) async {
+    await _delete(tx, LocalService.meetingTable, [product.id!], LocalService.meetingColumnProductId);
+    await _delete(tx, LocalService.sessionTable, [product.id!], LocalService.sessionColumnProductId);
+    await _delete(tx, LocalService.productTable, [product.id!]);
   }
 
   // Session ───────────────────────────────────────────────────────────────
@@ -188,64 +243,112 @@ class PowerSyncService implements DatabaseService {
   Future<Session> createSession(Session session) async {
     final id = session.id ?? Uuid().v4();
     final data = LocalService.sessionToLocal(session, id: id, make: true);
-    await _create(LocalService.sessionTable, id, data);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, session.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, session.product.id!))
+              ? await _create(tx, LocalService.sessionTable, data)
+              : throw MissingProductException(session.product.id!)
+          : throw MissingMemberException(session.product.member.id!);
+    });
     return Session.make(id: id, data: session.get());
   }
 
   @override
   Future<Session> updateSession(Session session) async {
     final data = LocalService.sessionToLocal(session);
-    await _update(LocalService.sessionTable, session.id!, data);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, session.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, session.product.id!))
+              ? (await _exists(tx, LocalService.sessionTable, session.id!))
+                  ? await _update(tx, LocalService.sessionTable, session.id!, data)
+                  : throw MissingSessionException(session.id!)
+              : throw MissingProductException(session.product.id!)
+          : throw MissingMemberException(session.product.member.id!);
+    });
     return session;
   }
 
   @override
-  Future<Session> deleteSession(Session session) async {
-    await _delete(LocalService.sessionTable, session.id!);
-    return session;
+  Future<Session> deleteSession(Session s) async {
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, s.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, s.product.id!))
+              ? (await _exists(tx, LocalService.sessionTable, s.id!))
+                  ? await _delete(tx, LocalService.sessionTable, [s.id!])
+                  : throw MissingSessionException(s.id!)
+              : throw MissingProductException(s.product.id!)
+          : throw MissingMemberException(s.product.member.id!);
+    });
+    return s;
   }
 
   // Meeting ───────────────────────────────────────────────────────────────
   @override
-  Future<Meeting> createMeeting(Meeting meeting) async {
-    final id = meeting.id ?? Uuid().v4();
-    final data = LocalService.meetingToLocal(meeting, id: id, make: true);
-    await _create(LocalService.meetingTable, id, data);
-    return Meeting.make(id: id, data: meeting.get());
+  Future<Meeting> createMeeting(Meeting m) async {
+    final id = m.id ?? Uuid().v4();
+    final data = LocalService.meetingToLocal(m, id: id, make: true);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, m.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, m.product.id!))
+              ? await _create(tx, LocalService.meetingTable, data)
+              : throw MissingProductException(m.product.id!)
+          : throw MissingMemberException(m.product.member.id!);
+    });
+    return Meeting.make(id: id, data: m.get());
   }
 
   @override
-  Future<Meeting> updateMeeting(Meeting meeting) async {
-    final data = LocalService.meetingToLocal(meeting);
-    await _update(LocalService.meetingTable, meeting.id!, data);
-    return meeting;
+  Future<Meeting> updateMeeting(Meeting m) async {
+    final data = LocalService.meetingToLocal(m);
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, m.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, m.product.id!))
+              ? (await _exists(tx, LocalService.meetingTable, m.id!))
+                  ? await _update(tx, LocalService.meetingTable, m.id!, data)
+                  : throw MissingMeetingException(m.id!)
+              : throw MissingProductException(m.product.id!)
+          : throw MissingMemberException(m.product.member.id!);
+    });
+    return m;
   }
 
   @override
-  Future<Meeting> deleteMeeting(Meeting meeting) async {
-    await _delete(LocalService.meetingTable, meeting.id!);
-    return meeting;
+  Future<Meeting> deleteMeeting(Meeting m) async {
+    await db.writeTransaction((tx) async {
+      (await _exists(tx, LocalService.memberTable, m.product.member.id!))
+          ? (await _exists(tx, LocalService.productTable, m.product.id!))
+              ? (await _exists(tx, LocalService.meetingTable, m.id!))
+                  ? await _delete(tx, LocalService.meetingTable, [m.id!])
+                  : throw MissingMeetingException(m.id!)
+              : throw MissingProductException(m.product.id!)
+          : throw MissingMemberException(m.product.member.id!);
+    });
+    return m;
   }
 
   // Builders ───────────────────────────────────────────────────────────────
+  @override
   Future<List<Member>> listMembers() async {
     final rows = await db.getAll("""
       SELECT * FROM ${LocalService.memberTable} 
       ORDER BY ${LocalService.memberColumnName}
     """);
-    return rows.map((row) =>
-        LocalService.memberFromLocal(DataMap.from(row))
-    ).toList();
+    return rows
+        .map((row) => LocalService.memberFromLocal(DataMap.from(row)))
+        .toList();
   }
+
+  @override
   Future<List<Product>> listProducts() async {
     final rows = await db.getAll("""
       SELECT * FROM ${LocalService.productTable} 
       ORDER BY ${LocalService.productColumnStart}
     """);
-    return rows.map((row) =>
-        LocalService.productFromLocal(DataMap.from(row))
-    ).toList();
+    return rows
+        .map((row) => LocalService.productFromLocal(DataMap.from(row)))
+        .toList();
   }
+
   @override
   Future<void> buildRegister(RegisterSource register) async {
     if (!db.currentStatus.hasSynced!) await db.waitForFirstSync();
@@ -258,19 +361,23 @@ class PowerSyncService implements DatabaseService {
       SELECT * FROM ${LocalService.meetingTable} 
       ORDER BY ${LocalService.meetingColumnStart}
     """);
-    return rows.map((row) =>
-        LocalService.meetingFromLocal(DataMap.from(row))
-    ).whereType<Meeting>().toList();
+    return rows
+        .map((row) => LocalService.meetingFromLocal(DataMap.from(row)))
+        .whereType<Meeting>()
+        .toList();
   }
+
   Future<List<Session>> listSession() async {
     final rows = await db.getAll("""
       SELECT * FROM ${LocalService.sessionTable}
       ORDER BY ${LocalService.sessionColumnStart}
     """);
-    return rows.map((row) =>
-        LocalService.sessionFromLocal(DataMap.from(row))
-    ).whereType<Session>().toList();
+    return rows
+        .map((row) => LocalService.sessionFromLocal(DataMap.from(row)))
+        .whereType<Session>()
+        .toList();
   }
+
   @override
   Future<void> buildSchedule(ScheduleSource schedule) async {
     if (!db.currentStatus.hasSynced!) await db.waitForFirstSync();
@@ -282,10 +389,10 @@ class PowerSyncService implements DatabaseService {
   static const _throttle = Duration(milliseconds: 30);
 
   Stream<DatabaseData<T>> _watch<T extends EGPTItem>(
-      String sql,
-      T Function(DataMap row) fromDatabase,
-      EGPTData<T> source,
-      ) {
+    String sql,
+    T Function(DataMap row) fromDatabase,
+    EGPTData<T> source,
+  ) {
     final reconcile = DatabaseSource<T>(source, fromDatabase);
     return db
         .watch(sql, throttle: _throttle)
@@ -298,7 +405,7 @@ class PowerSyncService implements DatabaseService {
   Stream<DatabaseData<Member>> watchMembers(RegisterSource register) =>
       _watch<Member>(
         'SELECT * FROM ${LocalService.memberTable} '
-            'ORDER BY ${LocalService.memberColumnName}',
+        'ORDER BY ${LocalService.memberColumnName}',
         LocalService.memberFromLocal,
         register.memberSource,
       );
@@ -307,7 +414,7 @@ class PowerSyncService implements DatabaseService {
   Stream<DatabaseData<Product>> watchProducts(RegisterSource register) =>
       _watch<Product>(
         'SELECT * FROM ${LocalService.productTable} '
-            'ORDER BY ${LocalService.productColumnStart}',
+        'ORDER BY ${LocalService.productColumnStart}',
         LocalService.productFromLocal,
         register.productSource,
       );
@@ -316,7 +423,7 @@ class PowerSyncService implements DatabaseService {
   Stream<DatabaseData<Meeting>> watchMeetings(ScheduleSource schedule) =>
       _watch<Meeting>(
         'SELECT * FROM ${LocalService.meetingTable} '
-            'ORDER BY ${LocalService.meetingColumnStart}',
+        'ORDER BY ${LocalService.meetingColumnStart}',
         LocalService.meetingFromLocal,
         schedule.meetingSource,
       );
@@ -325,7 +432,7 @@ class PowerSyncService implements DatabaseService {
   Stream<DatabaseData<Session>> watchSessions(ScheduleSource schedule) =>
       _watch<Session>(
         'SELECT * FROM ${LocalService.sessionTable} '
-            'ORDER BY ${LocalService.sessionColumnStart}',
+        'ORDER BY ${LocalService.sessionColumnStart}',
         LocalService.sessionFromLocal,
         schedule.sessionSource,
       );
@@ -341,8 +448,8 @@ class SupabaseConnector extends PowerSyncBackendConnector {
     final transaction = await database.getNextCrudTransaction();
     if (transaction == null) return;
     final rest = supabase.client.rest;
-    try {
-      for (var operation in transaction.crud) {
+    for (var operation in transaction.crud) {
+      try {
         final id = operation.id;
         final table = rest.from(operation.table);
         switch (operation.op) {
@@ -358,14 +465,15 @@ class SupabaseConnector extends PowerSyncBackendConnector {
             await table.delete().eq("id", id);
             break;
         }
+      } on flt_supabase.PostgrestException catch (e) {
+        debugPrint('Upload rifiutato [${e.code}] ${operation.table}: ${e.message}');
+        if (e.code != null) {
+          await transaction.complete();
+        } else {
+          rethrow;
+        }
       }
       await transaction.complete();
-    } on flt_supabase.PostgrestException catch (e) {
-      if (e.code != null) {
-        await transaction.complete();
-      } else {
-        rethrow;
-      }
     }
   }
 

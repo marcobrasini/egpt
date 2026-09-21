@@ -1,3 +1,4 @@
+import 'package:egpt/admin/widgets/dialog_form.dart';
 import 'package:egpt/models/session.dart';
 import 'package:flutter/material.dart';
 import 'package:calendar/calendar.dart';
@@ -6,7 +7,6 @@ import 'package:egpt/admin/source_admin.dart';
 import 'package:egpt/admin/widgets/meeting_form.dart';
 import 'package:egpt/admin/widgets/option_form.dart';
 import 'package:provider/provider.dart';
-
 
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
@@ -20,13 +20,13 @@ class _SchedulePageState extends State<SchedulePage>
   late final AdminSource admin;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     admin = context.read<AdminSource>();
   }
-
-  @override
-  bool get wantKeepAlive => true;
 
   Future<MeetingType?> confirm(Meeting meeting, String action) async {
     final typeForm = GlobalKey<OptionFormState>();
@@ -42,8 +42,10 @@ class _SchedulePageState extends State<SchedulePage>
             children: [
               if (meeting.isInstance) Column(
                 children: [
-                  Text("Stai ${lower}ndo un evento ricorrente."
-                      "\nApplica le modifiche a:"),
+                  Text(
+                    "Stai ${lower}ndo un evento ricorrente."
+                    "\nApplica le modifiche a:",
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0),
                     child: OptionForm(
@@ -56,13 +58,11 @@ class _SchedulePageState extends State<SchedulePage>
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  style: DefaultTextStyle.of(context).style.copyWith(
-                    color: Colors.black,
-                    fontSize: 16.0,
-                  ),
+                  style: DefaultTextStyle.of(
+                    context,
+                  ).style.copyWith(color: Colors.black, fontSize: 16.0),
                   children: [
-                    TextSpan(
-                      text: "Vuoi ${lower}re l'appuntamento\ncon "),
+                    TextSpan(text: "Vuoi ${lower}re l'appuntamento\ncon "),
                     TextSpan(
                       text: meeting.member.name,
                       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -81,9 +81,8 @@ class _SchedulePageState extends State<SchedulePage>
             ),
             TextButton(
               child: Text(action),
-              onPressed: () async => Navigator.of(context).pop(
-                  typeForm.currentState!.meetingType
-              ),
+              onPressed: () async =>
+                  Navigator.of(context).pop(typeForm.currentState!.meetingType),
             ),
           ],
         ),
@@ -91,78 +90,71 @@ class _SchedulePageState extends State<SchedulePage>
     );
   }
 
-  Future<Meeting?> makeMeeting(DateTime datetime) async {
+  Future<Meeting?> makeMeeting(BuildContext context, DateTime datetime) async {
     final meetingForm = GlobalKey<MeetingFormState>();
-    return await showDialog<Meeting?>(
+    return await showFormDialog(
       context: context,
-      builder: (context) => ChangeNotifierProvider<AdminSource>.value(
-        value: admin,
-        child: AlertDialog(
-          title: const Text("Nuovo meeting", textAlign: TextAlign.center),
-          content: MeetingForm(null, datetime: datetime, key: meetingForm),
-          actionsAlignment: MainAxisAlignment.spaceBetween,
-          actions: [
-            TextButton(
-              child: const Text("Annulla", style: TextStyle(fontSize: 16)),
-              onPressed: () => Navigator.of(context).pop(null),
-            ),
-            TextButton(
-              child: const Text("Conferma", style: TextStyle(fontSize: 16)),
-              onPressed: () async {
-                try {
-                  final data = meetingForm.currentState?.data;
-                  if (data == null) return;
-                  final meeting = await admin.insertMeeting(Meeting.make(data: data));
-                  if (context.mounted) Navigator.of(context).pop(meeting);
-                } catch (e) {
-                  if (context.mounted) {
-                    Navigator.of(context).pop(null);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Salvataggio fallito: $e')),
-                    );
-                  }
+      title: "Nuovo appuntamento",
+      content: MeetingForm(admin.register, null, datetime: datetime, key: meetingForm),
+      actions: [
+        FormAction("Annulla"),
+        FormAction("Conferma",
+          onPressed: (dialog) async {
+            if (meetingForm.currentState?.data case final data?) {
+              final meeting = await admin.insertMeeting(Meeting.make(data: data));
+              if (dialog.mounted) {
+                Navigator.of(dialog).pop(meeting);
+                if (meeting == null) {
+                  ScaffoldMessenger.of(dialog).showSnackBar(
+                    SnackBar(content: Text("Salvataggio fallito")),
+                  );
                 }
-              },
-            ),
-          ],
-        ),
-      ),
+              }
+            }
+          },
+        )
+      ],
     );
   }
 
-  Future<Meeting?> editMeeting(Meeting meeting) async {
+  Future<Meeting?> editMeeting(BuildContext context, Meeting meeting) async {
     final meetingForm = GlobalKey<MeetingFormState>();
     final isSession = meeting is Session;
-    return await showDialog<Meeting?>(
+    return await showFormDialog(
       context: context,
-      builder: (context) => ChangeNotifierProvider<AdminSource>.value(
-        value: admin,
-        child: AlertDialog(
-          title: Text(isSession ? "Sessione" : "Appuntamento",
-              textAlign: TextAlign.center
-          ),
-          content: MeetingForm(meeting, key: meetingForm, enabled: !isSession),
-          actionsAlignment: MainAxisAlignment.spaceBetween,
-          actions: (isSession) ? null : [
-            TextButton(
-              child: const Text("Cancella"),
-              onPressed: () async {
-                final deleted = await delMeeting(meeting);
-                if (context.mounted) Navigator.of(context).pop(deleted);
-              },
-            ),
-            TextButton(
-              child: const Text("Modifica"),
-              onPressed: () async {
-                final data = meetingForm.currentState!.data!;
-                final fixture = Fixture(start: data["start"], stop: data["stop"]);
-                final updated = await setMeeting(meeting, fixture);
-                if (context.mounted) Navigator.of(context).pop(updated);
-              },
-            ),
-          ],
+      title: isSession ? "Sessione" : "Appuntamento",
+      content: MeetingForm(admin.register, meeting, key: meetingForm, enabled: !isSession),
+      actions: (isSession) ? null : [
+        FormAction("Cancella",
+          onPressed: (dialog) async {
+            final deleted = await delMeeting(meeting);
+            if (dialog.mounted) {
+              Navigator.of(context).pop(deleted);
+              if (deleted == null) {
+                ScaffoldMessenger.of(dialog).showSnackBar(
+                  SnackBar(content: Text("Cancellazione fallita")),
+                );
+              }
+            }
+          },
         ),
-      ),
+        FormAction("Modifica",
+          onPressed: (dialog) async {
+            if (meetingForm.currentState?.data case final data?) {
+              final fixture = Fixture(start: data["start"], stop: data["stop"]);
+              final updated = await setMeeting(meeting, fixture);
+              if (context.mounted) {
+                Navigator.of(context).pop(updated);
+                if (updated == null) {
+                  ScaffoldMessenger.of(dialog).showSnackBar(
+                    SnackBar(content: Text("Modifica fallita")),
+                  );
+                }
+              }
+            }
+          },
+        ),
+      ]
     );
   }
 
@@ -224,7 +216,9 @@ class _SchedulePageState extends State<SchedulePage>
             return recurrence.shift(difference, duration);
           }
         }
-        return await admin.modifyMeeting(recurrence.shift(difference, duration));
+        return await admin.modifyMeeting(
+          recurrence.shift(difference, duration),
+        );
       case MeetingType.deviation:
         final recurrence = admin.schedule.meeting(meeting.parentId!);
         final deviation = recurrence.deviation(meeting, fixture);
@@ -249,46 +243,55 @@ class _SchedulePageState extends State<SchedulePage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Calendar<Meeting>(
-      view: CalendarView.weekly,
-      source: admin.schedule,
-      timeScheme: TimeScheme(6, 24, round: 15),
-      headerBuilder: (context, start, stop) => Row(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(start.format("dd MMMM yyyy"),
-            style: TextStyle(fontSize: 16),
-          ),
-          Expanded(child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Divider(),
-          )),
-          Text(stop.format("dd MMMM yyyy"),
-            style: TextStyle(fontSize: 16),
-          ),
-        ],
+    return RefreshIndicator.adaptive(
+      onRefresh: () => admin.build(),
+      child: Calendar<Meeting>(
+        view: CalendarView.weekly,
+        source: admin.schedule,
+        timeScheme: TimeScheme(6, 24, round: 15),
+        headerBuilder: (context, start, stop) => Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(start.format("dd MMMM yyyy"), style: TextStyle(fontSize: 16)),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Divider(),
+              ),
+            ),
+            Text(stop.format("dd MMMM yyyy"), style: TextStyle(fontSize: 16)),
+          ],
+        ),
+        eventConfig: EventConfig(
+          textStyle: TextStyle(color: Colors.white),
+          draggable: (meeting) => meeting is! Session,
+          resizable: (meeting) => meeting is! Session,
+          padding: 2.0,
+        ),
+        onFrameTap: (datetime) {
+          makeMeeting(context, datetime);
+        },
+        onEventTap: (meeting) {
+          editMeeting(context, meeting);
+        },
+        onEventDragged: (meeting, fixture) async {
+          final dragged = await setMeeting(meeting, fixture);
+          if (dragged == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Modifica fallita")),
+            );
+          }
+        },
+        onEventResized: (meeting, fixture) async {
+          final resized = await setMeeting(meeting, fixture);
+          if (resized == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Modifica fallita")),
+            );
+          }
+        },
       ),
-      eventConfig: EventConfig(
-        textStyle: TextStyle(color: Colors.white),
-        draggable: (meeting) => meeting is! Session,
-        resizable: (meeting) => meeting is! Session,
-        padding: 2.0,
-      ),
-      onFrameTap: (datetime) {
-        makeMeeting(datetime);
-      },
-      onEventTap: (meeting) {
-        editMeeting(meeting);
-      },
-      onEventDragged: (meeting, fixture) {
-        setMeeting(meeting, fixture);
-      },
-      onEventResized: (meeting, fixture) {
-        setMeeting(meeting, fixture);
-      },
     );
   }
 }
-
-

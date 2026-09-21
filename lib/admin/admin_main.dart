@@ -1,3 +1,4 @@
+import 'package:egpt/sources/source_register.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/egpt_services.dart';
@@ -5,7 +6,6 @@ import 'admin_register.dart';
 import 'admin_schedule.dart';
 import 'admin_presence.dart';
 import 'source_admin.dart';
-
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -63,8 +63,11 @@ class _AdminPageState extends State<AdminPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<AdminSource>.value(
-      value: admin,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AdminSource>.value(value: admin),
+        ChangeNotifierProvider<RegisterSource>.value(value: admin.register),
+      ],
       child: Builder(
         builder: (context) {
           final loading = context.select((AdminSource admin) => admin.loading);
@@ -80,13 +83,13 @@ class _AdminPageState extends State<AdminPage> {
               body: loading
                   ? const Center(child: CircularProgressIndicator.adaptive())
                   : const TabBarView(
-                physics: NeverScrollableScrollPhysics(),
-                children: [
-                  Center(child: Text("Schedule")),//SchedulePage()),
-                  Center(child: Text("Presence")),//PresencePage()),
-                  Center(child: RegisterPage()),
-                ],
-              ),
+                        physics: NeverScrollableScrollPhysics(),
+                        children: [
+                          Center(child: SchedulePage()),
+                          Center(child: PresencePage()),
+                          Center(child: RegisterPage()),
+                        ],
+                      ),
               bottomNavigationBar: const TabBar(
                 tabs: [
                   Tab(icon: Icon(Icons.calendar_today)),

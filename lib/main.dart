@@ -1,11 +1,12 @@
-import 'package:egpt/services/powersync_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/providers/google_provider.dart';
 import 'services/api/auth_service.dart';
 import 'services/supabase_service.dart';
+import 'services/powersync_service.dart';
 import 'services/egpt_services.dart';
 import 'auth.dart';
 
@@ -27,7 +28,9 @@ void main() async {
     services: EGPTServices(
       auth: supabase,
       database: database,
-      providers: [],
+      providers: [
+        GoogleService(),
+      ],
     ),
   ));
 }

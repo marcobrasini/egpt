@@ -81,7 +81,7 @@ class Product implements EGPTItem {
   int get duration => stop % start;
   int get pastDays => min(max(Date.now() % start, 0), duration);
   int get leftDays => min(max(stop % Date.now(), 0), duration);
-  String get recap => "$summary ($done($redo)/$length)";
+  String get recap => "$done($redo)/$length";
 
   bool isComplete() => done >= length;
   bool isStarted() => start <= Date.now();

@@ -4,14 +4,12 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 
 class ProductTile extends StatelessWidget {
-  final VoidCallback setProduct;
-  final VoidCallback delProduct;
+  final VoidCallback editProduct;
   final Product product;
 
   const ProductTile(
     this.product,
-    this.setProduct,
-    this.delProduct, {
+    this.editProduct, {
     super.key,
   });
 
@@ -35,8 +33,7 @@ class ProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: setProduct,
-    onLongPress: delProduct,
+    onLongPress: editProduct,
     child: Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),

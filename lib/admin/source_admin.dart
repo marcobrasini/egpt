@@ -1,15 +1,15 @@
 import 'dart:async';
-import 'package:egpt/services/api/database_service.dart';
-import 'package:egpt/typedef.dart';
 import 'package:flutter/foundation.dart';
-import '../models/meeting.dart';
-import '../models/member.dart';
-import '../models/product.dart';
-import '../models/session.dart';
+import '../services/api/database_service.dart';
 import '../services/egpt_services.dart';
 import '../sources/source_database.dart';
 import '../sources/source_register.dart';
 import '../sources/source_schedule.dart';
+import '../models/meeting.dart';
+import '../models/member.dart';
+import '../models/product.dart';
+import '../models/session.dart';
+import '../typedef.dart';
 
 
 class AdminSource extends ChangeNotifier {
@@ -21,11 +21,9 @@ class AdminSource extends ChangeNotifier {
   DatabaseService get db => services.database;
 
   // Stato ─────────────────────────────────────────────────────────────────
-  static const _streams = {'members', 'products', 'meetings', 'sessions'};
-  final Set<String> _received = {};
-  final List<StreamSubscription> _subscriptions = [];
   bool _building = false;
-  bool get loading => _building || !_received.containsAll(_streams);
+  bool get loading => _building;
+
   Object? _error;
   Object? get error => _error;
 
@@ -37,73 +35,106 @@ class AdminSource extends ChangeNotifier {
     try {
       await db.buildRegister(register);
       await db.buildSchedule(schedule);
-    } catch (e) {
-      _error = e;
-      print(_error);
+    } catch (error) {
+      _error = error;
     } finally {
       _building = false;
-      watch();
-    }
-  }
-
-  void watch() {
-    if (_subscriptions.isNotEmpty || _building) return;
-    _listen<Member>('members', db.watchMembers(register));
-    _listen<Product>('products', db.watchProducts(register));
-    _listen<Meeting>('meetings', db.watchMeetings(schedule));
-    _listen<Session>('sessions', db.watchSessions(schedule));
-  }
-
-  void _listen<T extends EGPTItem>(String name, Stream<DatabaseData<T>> stream) {
-    _subscriptions.add(
-      stream.listen(
-            (data) {
-          _received.add(name);
-          _error = null;
-          _notify();
-        },
-        onError: (Object e) {
-          _error = e;
-          _received.add(name);
-          _notify();
-        },
-      ),
-    );
-  }
-
-  // Più stream per la stessa transazione → una sola rebuild
-  Timer? _pending;
-  void _notify() {
-    _pending ??= Timer(Duration.zero, () {
-      _pending = null;
       notifyListeners();
-    });
+    }
   }
 
-  // Scritture: solo DB, le cache si aggiornano dagli stream ─────────────
-  Future<Member> insertMember(Member m) => db.createMember(m);
-  Future<Member> modifyMember(Member m) => db.updateMember(m);
-  Future<Member> removeMember(Member m) => db.deleteMember(m);
+  Future<Member> insertMember(Member m) async =>
+      register.insertMember(await db.createMember(m));
+  Future<Member> modifyMember(Member m) async {
+    db.updateMember(m);
+    schedule.modifyMember(m);
+    register.modifyMember(m);
+    return m;
+  }
+  Future<Member> removeMember(Member m) async {
+    db.deleteMember(m);
+    schedule.removeMember(m);
+    register.removeMember(m);
+    return m;
+  }
 
-  Future<Product> insertProduct(Product p) => db.createProduct(p);
-  Future<Product> modifyProduct(Product p) => db.updateProduct(p);
-  Future<Product> removeProduct(Product p) => db.deleteProduct(p);
+  Future<Product> insertProduct(Product p) async =>
+      register.insertProduct(await db.createProduct(p));
+  Future<Product> modifyProduct(Product p) async {
+    db.updateProduct(p);
+    register.modifyProduct(p);
+    return p;
+  }
+  Future<Product> removeProduct(Product p) async {
+    db.deleteProduct(p);
+    schedule.removeProduct(p);
+    register.removeProduct(p);
+    return p;
+  }
 
-  Future<Meeting> insertMeeting(Meeting m) => db.createMeeting(m);
-  Future<Meeting> modifyMeeting(Meeting m) => db.updateMeeting(m);
-  Future<Meeting> removeMeeting(Meeting m) => db.deleteMeeting(m);
-
-  Future<Session> insertSession(Session s) => db.createSession(s);
-  Future<Session> modifySession(Session s) => db.updateSession(s);
-  Future<Session> removeSession(Session s) => db.deleteSession(s);
-
-  // Chiusura ──────────────────────────────────────────────────────────────
-  @override
-  void dispose() {
-    _pending?.cancel();
-    for (final sub in _subscriptions) {
-      sub.cancel();
+  Future<Meeting?> insertMeeting(Meeting m) async {
+    try {
+      return schedule.insertMeeting(await db.createMeeting(m));
+    } on RegisterException catch (_) {
+      build();
     }
-    super.dispose();
+    return null;
+  }
+  Future<Meeting?> modifyMeeting(Meeting m) async {
+    try {
+      db.updateMeeting(m);
+      schedule.modifyMeeting(m);
+      return m;
+    } on MissingMeetingException catch (_) {
+      schedule.removeMeeting(m);
+    } on RegisterException catch (_) {
+      build();
+    }
+    return null;
+  }
+  Future<Meeting?> removeMeeting(Meeting m) async {
+    try {
+      db.deleteMeeting(m);
+      schedule.removeMeeting(m);
+      return m;
+    } on MissingMeetingException catch (_) {
+      schedule.removeMeeting(m);
+    } on RegisterException catch (_) {
+      build();
+    }
+    return null;
+  }
+
+  Future<Session?> insertSession(Session s) async {
+    try {
+      return schedule.insertSession(await db.createSession(s));
+    } on RegisterException catch (_) {
+      build();
+    }
+    return null;
+  }
+  Future<Session?> modifySession(Session s) async {
+    try {
+      db.updateSession(s);
+      schedule.modifySession(s);
+      return s;
+    } on MissingSessionException catch (_) {
+      schedule.removeSession(s);
+    } on RegisterException catch (_) {
+      build();
+    }
+    return null;
+  }
+  Future<Session?> removeSession(Session s) async {
+    try {
+      db.deleteSession(s);
+      schedule.removeSession(s);
+      return s;
+    } on MissingSessionException catch (_) {
+      schedule.removeSession(s);
+    } on RegisterException catch (_) {
+      build();
+    }
+    return null;
   }
 }

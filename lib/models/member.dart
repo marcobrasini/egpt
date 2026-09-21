@@ -12,8 +12,8 @@ class Member implements EGPTItem {
   String name;
   String firstName;
   String lastName;
-  Date birth;
   Color color;
+  Date? birth;
   String? email;
   String? phone;
   String? photo;
@@ -23,8 +23,8 @@ class Member implements EGPTItem {
     required this.name,
     required this.firstName,
     required this.lastName,
-    required this.birth,
     required this.color,
+    this.birth,
     this.email,
     this.phone,
     this.photo,
@@ -38,8 +38,8 @@ class Member implements EGPTItem {
     name: data['name'],
     firstName: data['firstName'],
     lastName: data['lastName'],
-    birth: data['birth'],
     color: data['color'],
+    birth: data['birth'],
     email: data['email'],
     phone: data['phone'],
     photo: data['photo'],
@@ -50,8 +50,8 @@ class Member implements EGPTItem {
     'name': name,
     'firstName': firstName,
     'lastName': lastName,
-    'birth': birth,
     'color': color,
+    'birth': birth,
     'email': email,
     'phone': phone,
     'photo': photo,
@@ -62,8 +62,10 @@ class Member implements EGPTItem {
     name = data['name'];
     firstName = data['firstName'];
     lastName = data['lastName'];
-    birth = data['birth'];
     color = data['color'];
+    birth = data['birth'];
+    email = data['email'];
+    phone = data['phone'];
     return this;
   }
 
@@ -72,10 +74,11 @@ class Member implements EGPTItem {
       products.firstWhere((p) => p.id == productId);
 
   int get age {
+    if (birth == null) return -1;
     final today = Date.now();
-    final age = today.year - birth.year;
-    return (today.month < birth.month
-        || (today.month == birth.month && today.day < birth.day))
+    final age = today.year - birth!.year;
+    return (today.month < birth!.month
+        || (today.month == birth!.month && today.day < birth!.day))
         ? age - 1
         : age;
   }

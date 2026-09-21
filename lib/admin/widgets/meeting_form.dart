@@ -1,3 +1,4 @@
+import 'package:egpt/sources/source_register.dart';
 import 'package:flutter/material.dart';
 import 'package:calendar/calendar.dart';
 import 'package:egpt/models/member.dart';
@@ -9,15 +10,18 @@ import 'package:egpt/admin/widgets/pattern_form.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:form_builder_extra_fields/form_builder_extra_fields.dart';
+import 'package:googleapis/mybusinessaccountmanagement/v1.dart';
 import 'package:provider/provider.dart';
 
 
 class MeetingForm extends StatefulWidget {
+  final RegisterSource register;
   final Meeting? meeting;
   final DateTime? datetime;
   final bool enabled;
 
   const MeetingForm(
+    this.register,
     this.meeting, {
     this.datetime,
     this.enabled = true,
@@ -34,7 +38,6 @@ class MeetingForm extends StatefulWidget {
 }
 
 class MeetingFormState extends State<MeetingForm> {
-  late final AdminSource admin;
   final _meetingForm = GlobalKey<FormBuilderState>();
   final _fixtureForm = GlobalKey<FixtureFormState>();
   final _patternForm = GlobalKey<PatternFormState>();
@@ -60,7 +63,6 @@ class MeetingFormState extends State<MeetingForm> {
 
   @override
   void initState() {
-    admin = context.read<AdminSource>();
     _product = widget.meeting?.product;
     _member = widget.meeting?.product.member;
     super.initState();
@@ -81,12 +83,12 @@ class MeetingFormState extends State<MeetingForm> {
       FormBuilderValidators.required(errorText: 'Seleziona un membro.'),
     ]),
     suggestionsCallback: (pattern) {
-      final names = admin.register.memberNames;
+      final names = widget.register.memberNames;
       return (pattern.isNotEmpty) ? _filterNames(names, pattern) : names;
     },
     onChanged: (name) {
       if (name == null && name == _member?.name) return;
-      final member = admin.register.members
+      final member = widget.register.members
           .where((m) => m.name == name)
           .singleOrNull;
       if (member == null) return;

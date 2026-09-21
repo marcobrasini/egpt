@@ -1,4 +1,5 @@
 import 'package:egpt/sources/source_register.dart';
+import 'package:egpt/sources/source_training.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/member.dart';
@@ -16,68 +17,13 @@ class MemberPage extends StatefulWidget {
 }
 
 class _MemberPageState extends State<MemberPage> {
-  late final AdminSource admin;
   late final GlobalKey<MemberFormState> memberForm;
   bool _editing = false;
-
-  Future<void> _delMember(BuildContext context, Member member) async {
-    final form = GlobalKey<DeleteFormState>();
-    await showDialog<Member>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Center(child: Text("Membro")),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "Stai eliminando il membro '${member.name}' con tutti "
-                  "gli abbonamenti e tutte le sessioni di allenamento associate."
-                  "\nVuoi rimuovere il membro?",
-            ),
-            DeleteForm(
-              "egpt/${widget.member.name}".replaceAll(" ", ""),
-              key: form,
-            ),
-          ],
-        ),
-        actionsAlignment: MainAxisAlignment.spaceBetween,
-        actions: [
-          TextButton(
-            child: const Text("Annulla", style: TextStyle(fontSize: 16)),
-            onPressed: () => Navigator.of(context).pop(null),
-          ),
-          FilledButton.icon(
-            icon: const Icon(Icons.delete_forever),
-            label: const Text("Elimina", style: TextStyle(fontSize: 16)),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-            onPressed: () async {
-              final navigator = Navigator.of(context);
-              if (form.currentState?.confirm ?? false) {
-                await admin.removeMember(member);
-                navigator.pop(member);
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _setMember(BuildContext context, Member member) async {
-    final data = memberForm.currentState?.data;
-    if (data != null) {
-      admin.modifyMember(widget.member.set(data));
-      admin.register.notifyMembers();
-    }
-  }
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    admin = context.read<AdminSource>();
     memberForm = GlobalKey<MemberFormState>();
   }
 
@@ -94,10 +40,19 @@ class _MemberPageState extends State<MemberPage> {
             MemberForm(widget.member, enabled: _editing, key: memberForm),
             IconButton(
               icon: Icon(_editing ? Icons.save : Icons.edit),
-              onPressed: () => setState(() {
-                if (_editing) _setMember(context, widget.member);
-                _editing = !_editing;
-              }),
+              onPressed: () async {
+                if (_editing) {
+                  if (memberForm.currentState?.data case final data?) {
+                    if (_saving) return ; _saving = true;
+                    final training = context.read<TrainingSource>();
+                    await training.modifyMember(widget.member.set(data));
+                  }
+                }
+                setState(() {
+                  _saving = false;
+                  _editing = !_editing;
+                });
+              },
             ),
           ],
         ),
@@ -117,7 +72,22 @@ class _MemberPageState extends State<MemberPage> {
                   backgroundColor: scheme.errorContainer,
                   foregroundColor: scheme.onErrorContainer,
                 ),
-                onPressed: () => _delMember(context, widget.member),
+                onPressed: () async {
+                  final confirm = await showDeleteDialog(
+                    context: context,
+                    title: "Cancella abbonamento",
+                    message: ""
+                      "Stai eliminando il membro '${widget.member.name}' "
+                      "con tutti gli abbonamenti e le sessioni associate."
+                      "\nVuoi rimuovere il membro?",
+                    string: ""
+                      "egpt/${widget.member.name}".replaceAll(" ", ""),
+                  );
+                  if (confirm && context.mounted) {
+                    final training = context.read<TrainingSource>();
+                    await training.removeMember(widget.member);
+                  }
+                }
               ),
             ],
           ),

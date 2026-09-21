@@ -66,7 +66,7 @@ class Meeting extends Event implements EGPTItem {
     String? patternRule,
   }) => Meeting(
     id: id,
-    product: register.products.singleWhere((p) => p.id == productId),
+    product: register.product(productId),
     start: start,
     stop: stop,
     parentId: parentId,

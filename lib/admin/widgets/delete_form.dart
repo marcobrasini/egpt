@@ -4,9 +4,7 @@ import 'package:form_builder_validators/form_builder_validators.dart';
 
 
 class DeleteForm extends StatefulWidget {
-  const DeleteForm(this.confirm, {
-    super.key,
-  });
+  const DeleteForm(this.confirm, {super.key});
 
   final String confirm;
 
@@ -26,32 +24,73 @@ class DeleteFormState extends State<DeleteForm> {
     return null;
   }
 
-  Widget confirmForm(BuildContext context) => FormBuilderTextField(
-    name: 'confirm',
-    initialValue: null,
-    decoration: InputDecoration(
-      helper: RichText(
-        text: TextSpan(
-          style: DefaultTextStyle.of(context).style,
-          children: [
-            TextSpan(text: "Digita '"),TextSpan(
-              text: widget.confirm,
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ), TextSpan(text: "'"),
-          ],
-        ),
-      ),
-      icon: Icon(Icons.keyboard),
-    ),
-    validator: FormBuilderValidators.compose([
-      FormBuilderValidators.required(errorText: _errorMessage),
-      FormBuilderValidators.equal(widget.confirm, errorText: _errorMessage)
-    ]),
-  );
-
   @override
   Widget build(BuildContext context) => FormBuilder(
     key: _formKey,
-    child: confirmForm(context),
+    child: FormBuilderTextField(
+      name: 'confirm',
+      initialValue: null,
+      decoration: InputDecoration(
+        helper: RichText(
+          text: TextSpan(
+            style: DefaultTextStyle.of(context).style,
+            children: [
+              TextSpan(text: "Digita '"),
+              TextSpan(
+                text: widget.confirm,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              TextSpan(text: "'"),
+            ],
+          ),
+        ),
+        icon: Icon(Icons.keyboard),
+      ),
+      validator: FormBuilderValidators.compose([
+        FormBuilderValidators.required(errorText: _errorMessage),
+        FormBuilderValidators.equal(widget.confirm, errorText: _errorMessage),
+      ]),
+    ),
   );
+}
+
+
+Future<bool> showDeleteDialog({
+  required BuildContext context,
+  required String title,
+  required String message,
+  required String string,
+}) async {
+  final deleteForm = GlobalKey<DeleteFormState>();
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(title, textAlign: TextAlign.center),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message),
+          DeleteForm(string, key: deleteForm),
+        ],
+      ),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: [
+        FilledButton.icon(
+          icon: const Icon(Icons.delete_forever),
+          label: const Text("Elimina", style: TextStyle(fontSize: 16)),
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+          ),
+          onPressed: () {
+            if (deleteForm.currentState?.confirm case final confirmation?) {
+              print(confirmation);
+              Navigator.of(dialogContext).pop(confirmation);
+            }
+          },
+        ),
+      ],
+    ),
+  );
+  return confirm ?? false;
 }
