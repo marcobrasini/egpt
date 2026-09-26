@@ -95,14 +95,14 @@ class _PresencePageState extends State<PresencePage>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(start.format("dd MMMM yyyy"),
-                    style: TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 14),
                   ),
                   const Expanded(child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8.0),
                     child: Divider(),
                   )),
                   Text(stop.format("dd MMMM yyyy"),
-                    style: TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 14),
                   ),
                 ],
               ),
@@ -129,6 +129,10 @@ class _PresencePageState extends State<PresencePage>
                 meeting: meeting,
                 presence: _presences[_key(meeting)],
                 onChanged: (value) => _presences[_key(meeting)] = value,
+              ),
+              eventConfig: EventConfig(
+                padding: 4.0,
+                textStyle: TextStyle(color: Colors.white),
               ),
               leftSwipeBuilder: (context) => ColoredBox(
                 color: scheme.tertiaryContainer,
@@ -188,8 +192,8 @@ class _PresencePageState extends State<PresencePage>
                 await delMeeting(meeting);
               },
               onEventSwipedRight: (meeting, fixture) async {
-                final presence = await addPresence(meeting);
-                if (presence != null) await delMeeting(meeting);
+                final session = await addPresence(meeting);
+                if (session != null) await delMeeting(meeting);
               },
               swipeableEvent: true,
             ),

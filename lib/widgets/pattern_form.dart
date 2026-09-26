@@ -1,4 +1,3 @@
-import 'package:egpt/utils/timezone.dart';
 import 'package:flutter/material.dart';
 import 'package:calendar/calendar.dart';
 import 'package:egpt/models/models.dart';
@@ -43,7 +42,7 @@ class PatternFormState extends State<PatternForm> {
         "pattern": (_repeat)
             ? Pattern(
               type: PatternType.weekly,
-              until: (data["until"] as DateTime).tzToUtc()
+              until: (data["until"] as DateTime)
             )
             : null,
       };

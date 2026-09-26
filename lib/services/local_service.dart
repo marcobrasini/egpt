@@ -3,7 +3,6 @@ import 'package:sqlite3/sqlite3.dart' as sql;
 import 'package:egpt/models/models.dart';
 import 'package:egpt/style.dart';
 import 'package:egpt/types.dart';
-import 'package:egpt/utils/timezone.dart';
 
 
 typedef Database = sql.Database;
@@ -114,16 +113,16 @@ class LocalService {
   }) => {
     if (make) presenceColumnId: id ?? presence.id,
     if (make) presenceColumnProductId: presence.product.id,
-    presenceColumnStart: presence.start.tzToUtc().toString(),
-    presenceColumnStop: presence.stop.tzToUtc().toString(),
+    presenceColumnStart: presence.start.fromTZ().toString(),
+    presenceColumnStop: presence.stop.fromTZ().toString(),
     presenceColumnPresence: presence.presence,
   };
 
   static Presence presenceFromLocal(DataMap row) => Presence(
     id: row[presenceColumnId],
     productId: row[presenceColumnProductId],
-    start: utcToTz(DateTime.parse(row[presenceColumnStart])),
-    stop: utcToTz(DateTime.parse(row[presenceColumnStop])),
+    start: DateTime.parse(row[presenceColumnStart]).toTZ(),
+    stop: DateTime.parse(row[presenceColumnStop]).toTZ(),
     presence: row[presenceColumnPresence] > 0,
   );
 
@@ -143,20 +142,23 @@ class LocalService {
   }) => {
     if (make) meetingColumnId: id ?? meeting.id,
     if (make) meetingColumnProductId: meeting.product.id,
-    meetingColumnStart: meeting.start.tzToUtc().toString(),
-    meetingColumnStop: meeting.stop.tzToUtc().toString(),
+    meetingColumnStart: meeting.start.fromTZ().toString(),
+    meetingColumnStop: meeting.stop.fromTZ().toString(),
     meetingColumnParentId: meeting.parentId,
     meetingColumnPatternRule: meeting.patternRule,
   };
 
-  static Meeting meetingFromLocal(DataMap row) => Meeting(
-    id: row[meetingColumnId],
-    productId: row[meetingColumnProductId],
-    parentId: row[meetingColumnParentId],
-    start: utcToTz(DateTime.parse(row[meetingColumnStart])),
-    stop: utcToTz(DateTime.parse(row[meetingColumnStop])),
-    pattern: (row[meetingColumnPatternRule] != null)
-        ? Pattern.fromICSString(row[meetingColumnPatternRule])
-        : null,
-  );
+  static Meeting meetingFromLocal(DataMap row) {
+    print(row);
+    return Meeting(
+      id: row[meetingColumnId],
+      productId: row[meetingColumnProductId],
+      parentId: row[meetingColumnParentId],
+      start: DateTime.parse(row[meetingColumnStart]).toTZ(),
+      stop: DateTime.parse(row[meetingColumnStop]).toTZ(),
+      pattern: (row[meetingColumnPatternRule] != null)
+          ? Pattern.fromICSString(row[meetingColumnPatternRule])
+          : null,
+    );
+  }
 }

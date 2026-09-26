@@ -1,4 +1,3 @@
-import 'package:egpt/utils/timezone.dart';
 import 'package:meta/meta.dart';
 import 'package:calendar/calendar.dart';
 import 'package:egpt/sources/sources.dart';
@@ -73,16 +72,19 @@ class Meeting extends Event implements EGPTItem {
   Set<DateTime>? get exceptionsList => pattern?.exceptions;
 
   @useResult
-  Meeting setPatternUntil(DateTime until) =>
-      set({'pattern': pattern?.setUntil(until.tzToUtc())});
+  Meeting setPatternUntil(DateTime until) {
+    return set({'pattern': pattern?.setUntil(until)});
+  }
 
   @useResult
-  Meeting addPatternException(DateTime datetime) =>
-      set({'pattern': pattern?.addException(datetime.tzToUtc())});
+  Meeting addPatternException(DateTime datetime) {
+    return set({'pattern': pattern?.addException(datetime)});
+  }
 
   @useResult
-  Meeting delPatternException(DateTime datetime) =>
-      set({'pattern': pattern?.delException(datetime.tzToUtc())});
+  Meeting delPatternException(DateTime datetime) {
+    return set({'pattern': pattern?.delException(datetime)});
+  }
 
   @useResult
   Meeting shift(Duration variation, Duration? duration) => set({

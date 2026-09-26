@@ -1,3 +1,4 @@
+import 'package:calendar/calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -5,12 +6,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/providers/google_provider.dart';
 import 'services/services.dart';
-import 'utils/timezone.dart';
 import 'auth.dart';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await TimeZones.initialize('Europe/Rome');
 
   await dotenv.load(fileName: '.env');
   await Supabase.initialize(
@@ -22,8 +24,6 @@ void main() async {
   final database = PowerSyncService(supabase);
   await database.open();
 
-  initTimeZones('Europe/Rome');
-  
   runApp(EGPTApp(
     services: EGPTServices(
       auth: supabase,

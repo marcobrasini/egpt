@@ -255,6 +255,9 @@ class _SchedulePageState extends State<SchedulePage>
         ),
         eventConfig: EventConfig(
           textStyle: TextStyle(color: Colors.white),
+          textStyleOf: (meeting) => meeting is Presence
+              ? const TextStyle(color: Colors.black)
+              : null,
           draggable: (meeting) => meeting is! Presence,
           resizable: (meeting) => meeting is! Presence,
           padding: 2.0,
