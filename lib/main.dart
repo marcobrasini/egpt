@@ -1,4 +1,5 @@
 import 'package:calendar/calendar.dart';
+import 'package:egpt/style.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -49,9 +50,10 @@ class EGPTApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthService>.value(value: services.auth),
+        ChangeNotifierProvider(create: (_) => ThemeController()),
         Provider<EGPTServices>.value(value: services),
       ],
-      child: MaterialApp(
+      builder: (context, _) => MaterialApp(
         localizationsDelegates: const [
           GlobalWidgetsLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -63,12 +65,20 @@ class EGPTApp extends StatelessWidget {
         ],
         locale: const Locale('it', 'IT'),
         theme: ThemeData(
-          useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.blue,
+            seedColor: colorSeed,
             brightness: Brightness.light,
           ),
+          useMaterial3: true,
         ),
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: colorSeed,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+        ),
+        themeMode: context.watch<ThemeController>().mode,
         home: const AuthGate(),
       ),
     );

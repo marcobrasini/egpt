@@ -34,7 +34,11 @@ class _RegisterPageState extends State<RegisterPage> {
     await showFormDialog(
       context: context,
       title: 'Nuovo Membro',
-      content: MemberForm(null, key: memberForm),
+      content: SizedBox(
+        height: 650,
+        child: SingleChildScrollView(
+          child: MemberForm(null, key: memberForm)),
+        ),
       actions: [
         FormAction('Annulla'),
         FormAction('Conferma',

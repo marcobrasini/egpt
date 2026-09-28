@@ -1,3 +1,4 @@
+import 'package:egpt/style.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:calendar/calendar.dart';
@@ -232,12 +233,14 @@ class _SchedulePageState extends State<SchedulePage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final scheme = Theme.of(context).colorScheme;
     return RefreshIndicator.adaptive(
       onRefresh: () => admin.build(),
       child: Calendar<Meeting>(
         view: CalendarView.weekly,
         source: admin.schedule,
         timeScheme: TimeScheme(6, 24, round: 15),
+        lineConfig: LineConfig(color: scheme.neutral),
         timeConfig: TextConfig(textStyle: TextStyle(fontSize: 14)),
         headerBuilder: (context, start, stop) => Row(
           mainAxisSize: MainAxisSize.max,
@@ -283,6 +286,57 @@ class _SchedulePageState extends State<SchedulePage>
           }
         },
       ),
+    );
+  }
+}
+
+
+class ScheduleActions extends StatelessWidget {
+  const ScheduleActions({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final schedule = context.read<AdminSource>().schedule;
+    final tabs = DefaultTabController.of(context);
+    const style = TextStyle(fontWeight: FontWeight.w500);
+    return ListenableBuilder(
+        listenable: Listenable.merge([
+          tabs,
+          schedule.meetingSource,
+          schedule.presenceSource,
+        ]),
+        builder: (context, _) {
+          if (tabs.index != 0) return const SizedBox.shrink();
+          return MenuAnchor(
+            builder: (context, controller, _) => IconButton(
+              icon: const Icon(Icons.more_vert),
+              onPressed: () =>
+              controller.isOpen
+                  ? controller.close()
+                  : controller.open(),
+            ),
+            menuChildren: [
+              const Padding(
+                padding: EdgeInsets.all(12.0),
+                child: Text('Mostra calendario:', style: style),
+              ),
+              CheckboxMenuButton(
+                value: schedule.meetingSource.visible,
+                onChanged: (value) {
+                  if (value != null) schedule.meetingSource.visible = value;
+                },
+                child: const Text('Appuntamenti', style: style),
+              ),
+              CheckboxMenuButton(
+                value: schedule.presenceSource.visible,
+                onChanged: (value) {
+                  if (value != null) schedule.presenceSource.visible = value;
+                },
+                child: const Text('Sessioni', style: style),
+              ),
+            ],
+          );
+        }
     );
   }
 }

@@ -88,7 +88,7 @@ class MeetingFormState extends State<MeetingForm> {
       if (member == null) return;
       setState(() {
         _member = member;
-        final valid = member.products.where((p) => p.isValid()).toList();
+        final valid = member.products.where((p) => !p.isExpired()).toList();
         _product = (valid.length == 1) ? valid.first : null;
       });
     },
@@ -101,7 +101,7 @@ class MeetingFormState extends State<MeetingForm> {
     decoration: const InputDecoration(labelText: "Abbonamento"),
     items:
         _member?.products
-            .where((product) => product.isValid())
+            .where((product) => !product.isExpired())
             .map(
               (product) => DropdownMenuItem<String>(
                 value: product.id,

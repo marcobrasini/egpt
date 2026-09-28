@@ -11,6 +11,12 @@ class SessionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (sessions.isEmpty) {
+      return Text("Nessuna sessione salvata",
+        style: TextStyle(color: scheme.outline),
+      );
+    }
     return Column(
       spacing: 8.0,
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -86,10 +86,9 @@ class LocalService {
 
   static DataMap sessionToLocal(
       Session session, {
-        String? id,
         bool make = false,
       }) => {
-    if (make) sessionColumnId: id ?? session.id,
+    if (make) sessionColumnId: session.id,
     if (make) sessionColumnProductId: session.productId,
   };
 
@@ -108,10 +107,9 @@ class LocalService {
 
   static DataMap presenceToLocal(
     Presence presence, {
-    String? id,
     bool make = false,
   }) => {
-    if (make) presenceColumnId: id ?? presence.id,
+    if (make) presenceColumnId: presence.id,
     if (make) presenceColumnProductId: presence.product.id,
     presenceColumnStart: presence.start.fromTZ().toString(),
     presenceColumnStop: presence.stop.fromTZ().toString(),
@@ -137,10 +135,9 @@ class LocalService {
 
   static DataMap meetingToLocal(
     Meeting meeting, {
-    String? id,
     bool make = false,
   }) => {
-    if (make) meetingColumnId: id ?? meeting.id,
+    if (make) meetingColumnId: meeting.id,
     if (make) meetingColumnProductId: meeting.product.id,
     meetingColumnStart: meeting.start.fromTZ().toString(),
     meetingColumnStop: meeting.stop.fromTZ().toString(),
@@ -149,7 +146,6 @@ class LocalService {
   };
 
   static Meeting meetingFromLocal(DataMap row) {
-    print(row);
     return Meeting(
       id: row[meetingColumnId],
       productId: row[meetingColumnProductId],

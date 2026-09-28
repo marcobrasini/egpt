@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:egpt/style.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:egpt/sources/sources.dart';
@@ -23,32 +24,45 @@ class _AdminPageState extends State<AdminPage> {
     await admin.services.signOut();
   }
 
-  Widget mainDrawer(BuildContext context) => Drawer(
-    child: ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        DrawerHeader(
-          decoration: BoxDecoration(color: Theme.of(context).primaryColor),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(
-                'Amministratore',
-                style: TextStyle(color: Colors.white, fontSize: 24),
+  Widget mainDrawer(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(color: scheme.primary),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Image.asset('assets/icon/logo_big.png', height: 72),
+                  ),
+                  FittedBox(
+                    child: Text('Amministratore',
+                      style: TextStyle(color: scheme.onPrimary, fontSize: 24),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.brightness_6_outlined),
+              title: (scheme.brightness == Brightness.light)
+                  ? Text('Stile: Chiaro')
+                  : Text('Stile: Scuro'),
+              trailing: const ThemeSwitch(),
+            ),
+            ListTile(
+              leading: Icon(Icons.logout, color: scheme.error),
+              title: Text('Logout', style: TextStyle(color: scheme.error)),
+              onTap: () => _logout(),
+            ),
+          ],
         ),
-        // Voce Logout
-        ListTile(
-          leading: const Icon(Icons.logout, color: Colors.red),
-          title: const Text('Logout', style: TextStyle(color: Colors.red)),
-          onTap: () => _logout(),
-        ),
-      ],
-    ),
-  );
+      );
+    }
 
   @override
   void initState() {
@@ -65,6 +79,7 @@ class _AdminPageState extends State<AdminPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AdminSource>.value(value: admin),
@@ -77,7 +92,13 @@ class _AdminPageState extends State<AdminPage> {
           drawer: mainDrawer(context),
           appBar: AppBar(
             centerTitle: true,
-            title: const Text("EGPT", style: TextStyle(fontSize: 28)),
+            title: Text("EGPT", 
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            actions: const [ScheduleActions()],
           ),
           body: Builder(
             builder: (context) {

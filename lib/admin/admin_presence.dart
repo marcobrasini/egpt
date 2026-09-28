@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:calendar/calendar.dart';
 import 'package:egpt/models/models.dart';
 import 'widgets/presence_tile.dart';
+import 'admin_statistic.dart';
 import 'source_admin.dart';
 
 
@@ -63,7 +64,7 @@ class _PresencePageState extends State<PresencePage>
       onRefresh: () => admin.build(),
       child: CustomScrollView(
         slivers: [
-          // AdminStatistic(),
+          AdminStatistic(),
           SliverAppBar(
             automaticallyImplyActions: false,
             automaticallyImplyLeading: false,
@@ -82,11 +83,13 @@ class _PresencePageState extends State<PresencePage>
               fixNextAnchor: true,
               centredView: false,
               lastAnchorBuilder: (context) => Container(
-                color: scheme.inversePrimary,
-                child: const Padding(
-                  padding: EdgeInsets.all(16.0),
+                color: scheme.primary,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Center(
-                    child: Text("Attenzione: ci sono presenze non registrate."),
+                    child: Text("Attenzione: ci sono presenze non registrate.",
+                      style: TextStyle(color: scheme.onPrimary),
+                    ),
                   ),
                 ),
               ),

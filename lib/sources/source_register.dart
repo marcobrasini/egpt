@@ -3,6 +3,7 @@ import 'package:egpt/services/services.dart';
 import 'package:egpt/models/models.dart';
 import 'package:egpt/types.dart';
 
+typedef MemberRating = ({Member member, double ratio, int total});
 
 class MemberSource implements EGPTData<Member> {
   final Map<String, Member> _data = {};
@@ -122,6 +123,31 @@ class RegisterSource extends ChangeNotifier {
   }
 
   List<String> get memberNames => members.map((m) => m.name).toList();
+  int get activeMembers => members.where((m) => m.products.any((p) => p.isValid())).length;
+  int get warningMembers => members.where((m) => m.products.any((p) => p.isWarning())).length;
+  int get stoppedMembers => members.where((m) => !m.products.any((p) => p.isValid())).length;
+
+  Iterable<MemberRating> _ratings(int minSessions) sync* {
+    for (final member in members) {
+      final products = this.products(member.id!);
+      final done = products.fold(0, (sum, p) => sum + p.done);
+      final total = products.fold(0, (sum, p) => sum + p.done + p.redo);
+      if (total < minSessions) continue;
+      yield (member: member, ratio: done / total, total: total);
+    }
+  }
+
+  MemberRating? bestMember({int minSessions = 1}) =>
+      _ratings(minSessions).fold<MemberRating?>(null, (best, r) =>
+      best == null ||
+          r.ratio > best.ratio ||
+          (r.ratio == best.ratio && r.total > best.total) ? r : best);
+
+  MemberRating? worstMember({int minSessions = 1}) =>
+      _ratings(minSessions).fold<MemberRating?>(null, (worst, r) =>
+      worst == null ||
+          r.ratio < worst.ratio ||
+          (r.ratio == worst.ratio && r.total > worst.total) ? r : worst);
 
   // Member ───────────────────────────────────────────────────────────────────
   Member insertMember(Member member) {

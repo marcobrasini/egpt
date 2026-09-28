@@ -34,6 +34,7 @@ class _PersonalTileState extends State<PersonalTile> {
       },
       builder: (context, data, _) {
         final (product, sessions) = data;
+        final scheme = Theme.of(context).colorScheme;
         return GestureDetector(
           onTap: () => setState(() => _expanded = !_expanded),
           onLongPress: widget.open,
@@ -45,12 +46,25 @@ class _PersonalTileState extends State<PersonalTile> {
                   Row(
                     spacing: 16.0,
                     children: [
-                      CircularPercentIndicator(
-                        radius: 32,
-                        lineWidth: 5,
-                        center: FaIcon(statusSymbol(product)),
-                        progressColor: statusColor(product),
-                        percent: product.pastDays / product.duration,
+                      Stack(
+                        alignment: AlignmentDirectional.center,
+                        children: [
+                          CircularPercentIndicator(
+                            radius: 26,
+                            lineWidth: 6,
+                            percent: product.pastDays / product.duration,
+                            progressColor: statusColor(product, scheme),
+                            backgroundColor: scheme.neutral,
+                          ),
+                          CircularPercentIndicator(
+                            radius: 34,
+                            lineWidth: 6,
+                            center: FaIcon(statusSymbol(product)),
+                            percent: product.done/product.length,
+                            progressColor: statusColor(product, scheme),
+                            backgroundColor: scheme.neutral,
+                          ),
+                        ],
                       ),
                       Expanded(
                         child: Column(

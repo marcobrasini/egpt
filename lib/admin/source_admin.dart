@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
 import 'package:egpt/models/models.dart';
 import 'package:egpt/sources/sources.dart';
 import 'package:egpt/types.dart';
@@ -78,7 +78,11 @@ class AdminSource extends ServiceSource {
   // Meeting ──────────────────────────────────────────────────────────────────
   Future<Meeting?> insertMeeting(Meeting m) async {
     try {
-      return schedule.insertMeeting(await db.createMeeting(m));
+      final id = m.id ?? const Uuid().v4();
+      final meeting = Meeting.make(id: id, data: m.get());
+      await db.createMeeting(meeting);
+      schedule.insertMeeting(meeting);
+      return meeting;
     } on RegisterException catch (_) {
       await build();
     } catch (error) {
@@ -89,8 +93,8 @@ class AdminSource extends ServiceSource {
 
   Future<Meeting?> modifyMeeting(Meeting m) async {
     try {
-      schedule.modifyMeeting(m);
       await db.updateMeeting(m);
+      schedule.modifyMeeting(m);
       return m;
     } on MissingMeetingException catch (_) {
       schedule.removeMeeting(m);
@@ -104,8 +108,8 @@ class AdminSource extends ServiceSource {
 
   Future<Meeting?> removeMeeting(Meeting m) async {
     try {
-      schedule.removeMeeting(m);
       await db.deleteMeeting(m);
+      schedule.removeMeeting(m);
       return m;
     } on MissingMeetingException catch (_) {
       schedule.removeMeeting(m);
@@ -120,7 +124,9 @@ class AdminSource extends ServiceSource {
   // Presence ─────────────────────────────────────────────────────────────────
   Future<Presence?> insertPresence(Presence p) async {
     try {
-      final presence = await db.createPresence(p);
+      final id = p.id ?? const Uuid().v4();
+      final presence = Presence.make(id: id, data: p.get());
+      await db.createPresence(presence);
       schedule.insertPresence(presence);
       return presence;
     } catch (error) {

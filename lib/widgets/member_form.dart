@@ -6,6 +6,7 @@ import 'package:form_builder_image_picker/form_builder_image_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:egpt/models/models.dart';
 import 'package:egpt/types.dart';
+import 'package:egpt/style.dart';
 
 
 const colorSize = 250.0;
@@ -35,7 +36,7 @@ class MemberFormState extends State<MemberForm> {
 
   Color get _color =>
       _memberForm.currentState?.fields["color"]?.value ??
-      (widget.member?.color ?? Theme.of(context).primaryColor);
+      (widget.member?.color ?? colorSeed);
 
   void _defaultName(String? firstName, String? lastName) {
     final form = _memberForm.currentState;
@@ -54,7 +55,7 @@ class MemberFormState extends State<MemberForm> {
     maxLines: null,
     enabled: _editing,
     decoration: const InputDecoration(border: InputBorder.none),
-    style: const TextStyle(fontSize: 24, color: Colors.black),
+    style: const TextStyle(fontSize: 24),
     textAlign: TextAlign.center,
     initialValue: widget.member?.name,
     valueTransformer: (value) => value?.trim(),
@@ -124,7 +125,7 @@ class MemberFormState extends State<MemberForm> {
   Widget colorForm() => FormBuilderField<Color>(
     name: 'color',
     enabled: _editing,
-    initialValue: widget.member?.color ?? Theme.of(context).primaryColor,
+    initialValue: _color,
     validator: FormBuilderValidators.compose([
       FormBuilderValidators.required(),
     ]),

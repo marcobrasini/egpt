@@ -329,8 +329,7 @@ class PowerSyncService implements DatabaseService {
   // Meeting ───────────────────────────────────────────────────────────────
   @override
   Future<Meeting> createMeeting(Meeting m) async {
-    final id = m.id ?? Uuid().v4();
-    final data = LocalService.meetingToLocal(m, id: id, make: true);
+    final data = LocalService.meetingToLocal(m, make: true);
     await db.writeTransaction((tx) async {
       (await _exists(tx, LocalService.memberTable, m.product.member.id!))
           ? (await _exists(tx, LocalService.productTable, m.product.id!))
@@ -338,7 +337,7 @@ class PowerSyncService implements DatabaseService {
               : throw MissingProductException(m.product.id!)
           : throw MissingMemberException(m.product.member.id!);
     });
-    return Meeting.make(id: id, data: m.get());
+    return m;
   }
 
   @override

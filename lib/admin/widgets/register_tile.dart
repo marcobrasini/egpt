@@ -22,7 +22,8 @@ class RegisterTile extends StatelessWidget {
         return (member, member.products);
       },
       builder: (context, data, _) {
-        final (member, products) = data;
+        final (member, allProducts) = data;
+        final products = allProducts.where((p) => p.isValid()).toList();
         return Card(
           child: ListTile(
             contentPadding: const EdgeInsetsGeometry.all(8.0),

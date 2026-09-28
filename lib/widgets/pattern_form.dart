@@ -95,7 +95,7 @@ class PatternFormState extends State<PatternForm> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text("Ripeti fino al"),
+          Text("Ripeti fino al "),
           Expanded(child: untilForm()),
           repeatForm(),
         ],

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../admin/source_admin.dart';
+import 'package:egpt/sources/sources.dart';
+import 'package:egpt/style.dart';
+import 'source_admin.dart';
 
 
 class AdminStatistic extends StatefulWidget {
@@ -22,7 +24,7 @@ class _AdminStatisticState extends State<AdminStatistic> {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<AdminSource>();
+    final register = context.watch<RegisterSource>();
     final scheme = Theme.of(context).colorScheme;
     return SliverMainAxisGroup(
       slivers: [
@@ -53,7 +55,7 @@ class _AdminStatisticState extends State<AdminStatistic> {
                           Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text("${admin.register.members.length}",
+                              Text("${register.activeMembers}",
                                 style: TextStyle(
                                     fontSize: 28.0,
                                     fontWeight: FontWeight.bold,
@@ -71,7 +73,10 @@ class _AdminStatisticState extends State<AdminStatistic> {
                               const Text("Migliore",
                                 style:TextStyle(fontWeight: FontWeight.bold),
                               ),
-                              Text("100%"),
+                              if (register.bestMember() case final best?) Text(
+                                  '${best.member.name} '
+                                      '${(best.ratio * 100).toStringAsFixed(0)}%'
+                              ) else Text("-"),
                             ],
                           ),
                           Column(
@@ -79,7 +84,10 @@ class _AdminStatisticState extends State<AdminStatistic> {
                               const Text("Peggiore",
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
-                              Text("0%"),
+                              if (register.worstMember() case final worst?) Text(
+                                  '${worst.member.name} '
+                                  '${(worst.ratio * 100).toStringAsFixed(0)}%'
+                              ) else Text("-"),
                             ],
                           ),
                         ],
@@ -102,16 +110,16 @@ class _AdminStatisticState extends State<AdminStatistic> {
                                 PieChartData(
                                   sections: [
                                     PieChartSectionData(
-                                      value: 43,
+                                      value: register.activeMembers.toDouble(),
                                       color: scheme.primary,
                                     ),
                                     PieChartSectionData(
-                                      value: 3,
-                                      color: scheme.secondary,
+                                      value: register.warningMembers.toDouble(),
+                                      color: scheme.warning,
                                     ),
                                     PieChartSectionData(
-                                      value: 5,
-                                      color: scheme.tertiary,
+                                      value: register.stoppedMembers.toDouble(),
+                                      color: scheme.neutral,
                                     ),
                                   ],
                                 ),
@@ -148,7 +156,7 @@ class _AdminStatisticState extends State<AdminStatistic> {
                                       height: 16,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: scheme.secondary,
+                                        color: scheme.warning,
                                       ),
                                     ),
                                     const Padding(
@@ -165,7 +173,7 @@ class _AdminStatisticState extends State<AdminStatistic> {
                                       height: 16,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: scheme.tertiary,
+                                        color: scheme.neutral,
                                       ),
                                     ),
                                     const Padding(
@@ -185,49 +193,6 @@ class _AdminStatisticState extends State<AdminStatistic> {
               ],
             ),
           ),
-        ),
-        SliverAppBar(
-          automaticallyImplyActions: false,
-          automaticallyImplyLeading: false,
-          title:  const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child:Text("Presenze",
-              style: TextStyle(fontSize: 24.0),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: AspectRatio(
-                aspectRatio: 1.8,
-                child: LineChart(
-                  LineChartData(
-                    lineBarsData: [
-                      LineChartBarData(
-                        barWidth: 4,
-                        isStrokeCapRound: true,
-                        dotData: const FlDotData(show: false),
-                        // belowBarData: BarAreaData(show: false),
-                        spots: const [
-                        FlSpot(1, 1/4),
-                        FlSpot(3, 1.5/4),
-                        FlSpot(5, 1.4/4),
-                        FlSpot(7, 3.4/4),
-                        FlSpot(10, 2/4),
-                        FlSpot(12, 2.2/4),
-                        FlSpot(13, 1.8/4),
-                        ],
-                      )
-                    ],
-                    minX: 0,
-                    maxX: 14,
-                    maxY: 1,
-                    minY: 0,
-                  ),
-                ),
-              ),
-            ),
         ),
       ],
     );

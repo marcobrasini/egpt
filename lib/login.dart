@@ -9,9 +9,10 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final services = context.read<EGPTServices>();
-
     return FlutterLogin(
+      logo: const AssetImage('assets/icon/logo_big.png'),
       title: 'EGPT',
       userType: LoginUserType.email,
       onLogin: (data) => services.auth.signIn(
@@ -44,11 +45,15 @@ class LoginPage extends StatelessWidget {
         flushbarTitleError: "Errore",
         flushbarTitleSuccess: "Fatto",
       ),
+
       theme: LoginTheme(
-        primaryColor: Theme.of(context).colorScheme.primary,
-        errorColor: Theme.of(context).colorScheme.error,
-        titleStyle: const TextStyle(
-          color: Colors.white,
+        logoWidth: 80.0,
+        pageColorLight: scheme.surface,
+        pageColorDark: scheme.primary,
+        primaryColor: scheme.primary,
+        errorColor: scheme.error,
+        titleStyle: TextStyle(
+          color: scheme.onPrimaryContainer,
           fontWeight: FontWeight.w600,
           letterSpacing: 4,
         ),
