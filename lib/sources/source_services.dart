@@ -8,11 +8,12 @@ import 'source_schedule.dart';
 abstract class ServiceSource extends ChangeNotifier {
   ServiceSource({required this.services});
 
+  final EGPTServices services;
+
   final register = RegisterSource();
   final schedule = ScheduleSource();
-
-  final EGPTServices services;
-  DatabaseService get db => services.database;
+  DatabaseService get database => services.database;
+  CalendarService? get calendar => services.calendar;
 
   Future<void> build();
 

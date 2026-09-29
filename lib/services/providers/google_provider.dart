@@ -1,9 +1,9 @@
-import "package:egpt/services/providers/google_calendar.dart";
-import "package:font_awesome_flutter/font_awesome_flutter.dart";
-import "package:supabase_flutter/supabase_flutter.dart";
-import "package:google_sign_in/google_sign_in.dart";
-import "package:egpt/services/api/provider_service.dart";
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import "package:google_sign_in/google_sign_in.dart";
+import "package:supabase_flutter/supabase_flutter.dart";
+import "package:font_awesome_flutter/font_awesome_flutter.dart";
+import "../api/provider_service.dart";
+import "google_calendar.dart";
 
 
 class GoogleService implements ProviderService {
@@ -16,13 +16,12 @@ class GoogleService implements ProviderService {
   GoogleService._singleton();
 
   factory GoogleService() => instance;
-  late final calendar = GoogleCalendar(provider: this);
+  @override GoogleCalendar get calendar => GoogleCalendar(provider: this);
 
   @override get identity => ProviderIdentity.google;
   @override get oAuth => OAuthProvider.google;
   @override get icon => FontAwesomeIcons.google;
   @override get label => "Google";
-  @override get available => true;
 
   bool _ready = false;
 

@@ -90,7 +90,7 @@ class PersonalSource extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      await source.db.buildPersonal(this);
+      await source.database.buildPersonal(this);
     } catch (error) {
       _error = error;
       debugPrint(error.toString());

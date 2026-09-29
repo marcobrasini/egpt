@@ -90,6 +90,9 @@ class SupabaseService extends ChangeNotifier implements AuthService {
   }
 
   @override
+  String? get email => user?.email;
+
+  @override
   AuthRole? get role {
     final token = session?.accessToken;
     if (token == null) return null;
@@ -104,6 +107,15 @@ class SupabaseService extends ChangeNotifier implements AuthService {
     if (parts.length != 3) return null;
     final payload = base64Url.decode(base64Url.normalize(parts[1]));
     return jsonDecode(utf8.decode(payload)) as DataMap;
+  }
+
+  @override
+  Set<ProviderIdentity> get identities {
+    final linked = (user?.appMetadata['providers'] as List?)?.cast<String>() ?? const [];
+    return {
+      for (final identity in ProviderIdentity.values)
+        if (linked.contains(identity.name)) identity,
+    };
   }
 }
 

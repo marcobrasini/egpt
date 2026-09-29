@@ -29,9 +29,13 @@ abstract class AuthService extends ChangeNotifier {
 
   Object? get session;
 
+  String? get email;
+
   AuthRole? get role;
 
   bool get privileged;
 
   bool get initialized;
+
+  Set<ProviderIdentity> get identities;
 }

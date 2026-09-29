@@ -37,13 +37,22 @@ class _AdminPageState extends State<AdminPage> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Image.asset('assets/icon/logo_big.png', height: 72),
+                    child: Image.asset('assets/logo/logo.png', height: 72),
                   ),
-                  FittedBox(
-                    child: Text('Amministratore',
-                      style: TextStyle(color: scheme.onPrimary, fontSize: 24),
-                    ),
-                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Amministratore',
+                        style: TextStyle(color: scheme.onPrimary, fontSize: 24),
+                      ),
+                      FittedBox(
+                        child: Text(admin.email ?? "",
+                          style: TextStyle(color: scheme.onPrimary),
+                        ),
+                      ),
+                    ],
+                  )
                 ],
               ),
             ),
@@ -79,7 +88,6 @@ class _AdminPageState extends State<AdminPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AdminSource>.value(value: admin),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'calendar_service.dart';
 
 
 enum ProviderIdentity {
@@ -35,7 +36,7 @@ abstract class ProviderService {
 
   OAuthProvider get oAuth;
 
-  bool get available => true;
+  CalendarService? get calendar;
 
   Future<void> initialize() async {}
 

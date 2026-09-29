@@ -12,7 +12,7 @@ class LoginPage extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final services = context.read<EGPTServices>();
     return FlutterLogin(
-      logo: const AssetImage('assets/icon/logo_big.png'),
+      logo: const AssetImage('assets/logo/logo.png'),
       title: 'EGPT',
       userType: LoginUserType.email,
       onLogin: (data) => services.auth.signIn(
@@ -23,12 +23,11 @@ class LoginPage extends StatelessWidget {
       navigateBackAfterRecovery: true,
       loginProviders: [
         for (final provider in services.providers)
-          if (provider.available)
-            LoginProvider(
-              icon: provider.icon,
-              label: provider.label,
-              callback: () => services.auth.signInWith(provider: provider),
-            ),
+          LoginProvider(
+            icon: provider.icon,
+            label: provider.label,
+            callback: () => services.auth.signInWith(provider: provider),
+          ),
       ],
       messages: LoginMessages(
         userHint: "Email",

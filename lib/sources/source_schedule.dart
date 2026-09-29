@@ -36,7 +36,7 @@ typedef MeetingSource = MeetingCalendar<Meeting>;
 typedef PresenceSource = MeetingCalendar<Presence>;
 
 
-class ScheduleSource extends CalendarSources<Meeting> {
+class ScheduleSource extends CalendarSources<Event> {
   static const meetingsLabel = 'meetings';
   static const presencesLabel = 'presences';
 

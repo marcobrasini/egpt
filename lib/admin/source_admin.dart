@@ -10,6 +10,7 @@ class AdminSource extends ServiceSource {
   AdminSource({required super.services});
 
   late final personal = PersonalSource(this);
+  String? get email => services.auth.email;
 
   // Build ─────────────────────────────────────────────────────────────────
   bool _building = false;
@@ -24,8 +25,15 @@ class AdminSource extends ServiceSource {
     _error = null;
     notifyListeners();
     try {
-      await db.buildRegister(register);
-      await db.buildSchedule(schedule);
+      await database.buildRegister(register);
+      await database.buildSchedule(schedule);
+      if (calendar case final calendar?) {
+        try {
+          schedule.attach(await calendar.build());
+        } catch (error) {
+          debugPrint("calendar error: $error");
+        }
+      }
     } catch (error) {
       _error = error;
     } finally {
@@ -37,10 +45,10 @@ class AdminSource extends ServiceSource {
   // Member ───────────────────────────────────────────────────────────────────
   @override
   Future<Member> insertMember(Member m) async =>
-      register.insertMember(await db.createMember(m));
+      register.insertMember(await database.createMember(m));
   @override
   Future<Member> modifyMember(Member m) async {
-    await db.updateMember(m);
+    await database.updateMember(m);
     register.modifyMember(m);
     schedule.modifyMember(m);
     return m;
@@ -48,7 +56,7 @@ class AdminSource extends ServiceSource {
 
   @override
   Future<Member> removeMember(Member m) async {
-    await db.deleteMember(m);
+    await database.deleteMember(m);
     register.removeMember(m);
     schedule.removeMember(m);
     return m;
@@ -57,11 +65,11 @@ class AdminSource extends ServiceSource {
   // Product ──────────────────────────────────────────────────────────────────
   @override
   Future<Product> insertProduct(Product p) async =>
-      register.insertProduct(await db.createProduct(p));
+      register.insertProduct(await database.createProduct(p));
 
   @override
   Future<Product> modifyProduct(Product p) async {
-    await db.updateProduct(p);
+    await database.updateProduct(p);
     schedule.modifyProduct(p);
     register.modifyProduct(p);
     return p;
@@ -69,7 +77,7 @@ class AdminSource extends ServiceSource {
 
   @override
   Future<Product> removeProduct(Product p) async {
-    await db.deleteProduct(p);
+    await database.deleteProduct(p);
     schedule.removeProduct(p);
     register.removeProduct(p);
     return p;
@@ -80,7 +88,7 @@ class AdminSource extends ServiceSource {
     try {
       final id = m.id ?? const Uuid().v4();
       final meeting = Meeting.make(id: id, data: m.get());
-      await db.createMeeting(meeting);
+      await database.createMeeting(meeting);
       schedule.insertMeeting(meeting);
       return meeting;
     } on RegisterException catch (_) {
@@ -93,7 +101,7 @@ class AdminSource extends ServiceSource {
 
   Future<Meeting?> modifyMeeting(Meeting m) async {
     try {
-      await db.updateMeeting(m);
+      await database.updateMeeting(m);
       schedule.modifyMeeting(m);
       return m;
     } on MissingMeetingException catch (_) {
@@ -108,7 +116,7 @@ class AdminSource extends ServiceSource {
 
   Future<Meeting?> removeMeeting(Meeting m) async {
     try {
-      await db.deleteMeeting(m);
+      await database.deleteMeeting(m);
       schedule.removeMeeting(m);
       return m;
     } on MissingMeetingException catch (_) {
@@ -126,7 +134,7 @@ class AdminSource extends ServiceSource {
     try {
       final id = p.id ?? const Uuid().v4();
       final presence = Presence.make(id: id, data: p.get());
-      await db.createPresence(presence);
+      await database.createPresence(presence);
       schedule.insertPresence(presence);
       return presence;
     } catch (error) {
@@ -137,7 +145,7 @@ class AdminSource extends ServiceSource {
 
   Future<Presence?> modifyPresence(Presence p) async {
     try {
-      await db.updatePresence(p);
+      await database.updatePresence(p);
       schedule.modifyPresence(p);
       return p;
     } on MissingPresenceException catch (_) {
@@ -150,7 +158,7 @@ class AdminSource extends ServiceSource {
 
   Future<Presence?> removePresence(Presence p) async {
     try {
-      await db.deletePresence(p);
+      await database.deletePresence(p);
       schedule.removePresence(p);
       return p;
     } on MissingPresenceException catch (_) {
@@ -167,7 +175,7 @@ class AdminSource extends ServiceSource {
     try {
       final id = s.id ?? const Uuid().v4();
       final session = Session.make(id: id, data: s.get());
-      await db.createSession(session);
+      await database.createSession(session);
       await session.presence?.let(insertPresence);
       register.insertSession(session);
       return session;
@@ -187,7 +195,7 @@ class AdminSource extends ServiceSource {
       } else {
         await removePresence(s.presence!);
       }
-      await db.updateSession(s);
+      await database.updateSession(s);
       register.modifySession(s);
       return s;
     } on MissingSessionException catch (_) {
@@ -204,7 +212,7 @@ class AdminSource extends ServiceSource {
   Future<Session?> removeSession(Session s) async {
     try {
       await s.presence?.let(removePresence);
-      await db.deleteSession(s);
+      await database.deleteSession(s);
       register.removeSession(s);
       return s;
     } on MissingSessionException catch (_) {

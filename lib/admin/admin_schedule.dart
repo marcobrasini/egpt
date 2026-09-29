@@ -236,7 +236,7 @@ class _SchedulePageState extends State<SchedulePage>
     final scheme = Theme.of(context).colorScheme;
     return RefreshIndicator.adaptive(
       onRefresh: () => admin.build(),
-      child: Calendar<Meeting>(
+      child: Calendar(
         view: CalendarView.weekly,
         source: admin.schedule,
         timeScheme: TimeScheme(6, 24, round: 15),
@@ -258,27 +258,31 @@ class _SchedulePageState extends State<SchedulePage>
         ),
         eventConfig: EventConfig(
           textStyle: TextStyle(color: Colors.white),
-          textStyleOf: (meeting) => meeting is Presence
-              ? const TextStyle(color: Colors.black)
-              : null,
-          draggable: (meeting) => meeting is! Presence,
-          resizable: (meeting) => meeting is! Presence,
+          textStyleOf: (e) => e is Meeting && e is! Presence
+              ? null : const TextStyle(color: Colors.black),
+          draggable: (e) => e is Meeting && e is! Presence,
+          resizable: (e) => e is Meeting && e is! Presence,
           padding: 2.0,
         ),
         onFrameTap: (datetime) => makeMeeting(context, datetime),
-        onEventTap: (meeting) => editMeeting(context, meeting),
-        onEventDragged: (meeting, fixture) async {
+        onEventTap: (event) => switch (event) {
+          Meeting m => editMeeting(context, m),
+          _ => {},
+        },
+        onEventDragged: (event, fixture) async {
+          if (event is! Meeting) return;
           final messenger = ScaffoldMessenger.of(context);
-          final dragged = await setMeeting(meeting, fixture);
+          final dragged = await setMeeting(event, fixture);
           if (dragged == null) {
             messenger.showSnackBar(
               SnackBar(content: Text("Modifica fallita")),
             );
           }
         },
-        onEventResized: (meeting, fixture) async {
+        onEventResized: (event, fixture) async {
+          if (event is! Meeting) return;
           final messenger = ScaffoldMessenger.of(context);
-          final resized = await setMeeting(meeting, fixture);
+          final resized = await setMeeting(event, fixture);
           if (resized == null) {
             messenger.showSnackBar(
               SnackBar(content: Text("Modifica fallita")),
@@ -300,11 +304,7 @@ class ScheduleActions extends StatelessWidget {
     final tabs = DefaultTabController.of(context);
     const style = TextStyle(fontWeight: FontWeight.w500);
     return ListenableBuilder(
-        listenable: Listenable.merge([
-          tabs,
-          schedule.meetingSource,
-          schedule.presenceSource,
-        ]),
+        listenable: Listenable.merge([tabs, ...schedule.sources]),
         builder: (context, _) {
           if (tabs.index != 0) return const SizedBox.shrink();
           return MenuAnchor(
@@ -333,6 +333,29 @@ class ScheduleActions extends StatelessWidget {
                   if (value != null) schedule.presenceSource.visible = value;
                 },
                 child: const Text('Sessioni', style: style),
+              ),
+              if (schedule.sources.length > 2) Column(
+                children: [
+                  const Row(
+                    children: [
+                      Expanded(child: Divider()),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text("Google"),
+                      ),
+                      Expanded(child: Divider()),
+                    ],
+                  ),
+                  for (final source in schedule.sources)
+                    if (source != schedule.meetingSource && source != schedule.presenceSource)
+                    CheckboxMenuButton(
+                      value: source.visible,
+                      onChanged: (value) {
+                        if (value != null) source.visible = value;
+                      },
+                      child: Text(source.label!, style: style),
+                    ),
+                ],
               ),
             ],
           );
