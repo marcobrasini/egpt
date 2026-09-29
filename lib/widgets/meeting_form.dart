@@ -24,8 +24,12 @@ class MeetingForm extends StatefulWidget {
 
   bool get creating => meeting == null;
   Fixture? get fixture => (datetime != null)
-      ? Fixture(start: datetime!, stop: datetime!.add(Duration(hours: 1)))
-      : null;
+      ? (datetime is Date)
+          ? Fixture(start: datetime as Date)
+          : Fixture(start: datetime!, stop: datetime!.add(Duration(hours: 1)))
+      : meeting;
+
+  bool get isAllDay => fixture?.isAllDay ?? false;
 
   @override
   State<MeetingForm> createState() => MeetingFormState();
@@ -35,21 +39,36 @@ class MeetingFormState extends State<MeetingForm> {
   final _meetingForm = GlobalKey<FormBuilderState>();
   final _fixtureForm = GlobalKey<FixtureFormState>();
   final _patternForm = GlobalKey<PatternFormState>();
-  Product? _product;
   Member? _member;
+  Product? _product;
   bool get _making => widget.creating;
   bool get _editing => widget.enabled;
+  String? _fixtureError;
+
+  String? validateFixture(Fixture fixture) {
+    if (_product == null) return null;
+    if (fixture.start.isBefore(_product!.start)) {
+      return "L'abbonamento inizia il ${_product!.start.format("dd/MM/yyyy")}";
+    }
+    return null;
+  }
 
   Map<String, dynamic>? get data {
     final meetingForm = _meetingForm.currentState;
     final fixtureForm = _fixtureForm.currentState;
     final patternForm = _patternForm.currentState;
     if ((meetingForm?.saveAndValidate() ?? false) && fixtureForm != null) {
-      final fixture = fixtureForm.data;
+      final fixture = fixtureForm.fixture;
       final pattern = patternForm?.data;
+      print("meetingForm $fixture");
       if (fixture != null) {
-        final data = Map<String, dynamic>.from(meetingForm!.value);
-        return {...data, ...fixture, if (pattern != null) ...pattern};
+        final error = validateFixture(fixture);
+        if (error == null) {
+          final data = Map<String, dynamic>.from(meetingForm!.value);
+          return {...data, ...fixture.get(), if (pattern != null) ...pattern};
+        } else {
+          if (mounted) setState(() => _fixtureError = error);
+        }
       }
     }
     return null;
@@ -90,6 +109,7 @@ class MeetingFormState extends State<MeetingForm> {
         _member = member;
         final valid = member.products.where((p) => !p.isExpired()).toList();
         _product = (valid.length == 1) ? valid.first : null;
+        _fixtureError = null;
       });
     },
   );
@@ -119,6 +139,7 @@ class MeetingFormState extends State<MeetingForm> {
       if (productId == null) return;
       setState(() {
         _product = _member!.products.singleWhere((p) => p.id == productId);
+        _fixtureError = null;
       });
     },
   );
@@ -146,7 +167,19 @@ class MeetingFormState extends State<MeetingForm> {
           memberForm(),
           productForm(),
           fixtureForm(),
-          if (widget.meeting?.pattern != null || _making) patternForm(),
+          if (_fixtureError case final error?)
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Text(
+                error,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          if (!widget.isAllDay && (widget.meeting?.pattern != null || _making))
+            patternForm(),
         ],
       ),
     );

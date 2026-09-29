@@ -67,7 +67,7 @@ Future<T?> showFormDialog<T>({
   context: context,
   builder: (dialogContext) => AlertDialog(
     title: Text(title, textAlign: TextAlign.center),
-    content: content,
+    content: SingleChildScrollView(child: content),
     actions: actions,
     actionsAlignment: MainAxisAlignment.spaceBetween,
   ),

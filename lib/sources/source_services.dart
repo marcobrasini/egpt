@@ -9,6 +9,8 @@ abstract class ServiceSource extends ChangeNotifier {
   ServiceSource({required this.services});
 
   final EGPTServices services;
+  String? get email => services.auth.email;
+  String? get name => services.auth.name;
 
   final register = RegisterSource();
   final schedule = ScheduleSource();

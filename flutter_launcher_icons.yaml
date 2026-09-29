@@ -1,10 +1,10 @@
 flutter_launcher_icons:
-  image_path: "assets/icon/logo.png"   # PNG quadrato, idealmente 1024x1024
+  image_path: "assets/icon.png"   # PNG quadrato, idealmente 1024x1024
   android: true
   ios: true
   remove_alpha_ios: true               # l'App Store rifiuta icone con trasparenza
   adaptive_icon_background: "#000000"  # opzionale, per le adaptive icon Android
-  adaptive_icon_foreground: "assets/icon/icon.png"
+  adaptive_icon_foreground: "assets/icon.png"
   web:
     generate: true
   windows:

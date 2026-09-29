@@ -56,7 +56,7 @@ class _SchedulePageState extends State<SchedulePage>
             text: TextSpan(
               style: DefaultTextStyle.of(
                 context,
-              ).style.copyWith(color: Colors.black, fontSize: 16.0),
+              ).style.copyWith(fontSize: 16.0),
               children: [
                 TextSpan(text: "Vuoi ${lower}re l'appuntamento\ncon "),
                 TextSpan(
@@ -72,7 +72,9 @@ class _SchedulePageState extends State<SchedulePage>
       actions: [
         FormAction("Annulla"),
         FormAction(action,
-          color: Theme.of(context).colorScheme.error,
+          color: (action == "Cancella")
+              ? Theme.of(context).colorScheme.error
+              : null,
           onPressed: (dialog) async {
             if (typeForm.currentState?.meetingType case final type?) {
               Navigator.of(context).pop(type);
@@ -237,11 +239,13 @@ class _SchedulePageState extends State<SchedulePage>
     return RefreshIndicator.adaptive(
       onRefresh: () => admin.build(),
       child: Calendar(
-        view: CalendarView.weekly,
+        view: CalendarView.daily,
         source: admin.schedule,
+        dateScheme: DateScheme.weekly(),
         timeScheme: TimeScheme(6, 24, round: 15),
         lineConfig: LineConfig(color: scheme.neutral),
         timeConfig: TextConfig(textStyle: TextStyle(fontSize: 14)),
+        dateConfig: TextConfig(padding: 12.0),
         headerBuilder: (context, start, stop) => Row(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -262,7 +266,8 @@ class _SchedulePageState extends State<SchedulePage>
               ? null : const TextStyle(color: Colors.black),
           draggable: (e) => e is Meeting && e is! Presence,
           resizable: (e) => e is Meeting && e is! Presence,
-          padding: 2.0,
+          padding: 4.0,
+          margin: 2.0
         ),
         onFrameTap: (datetime) => makeMeeting(context, datetime),
         onEventTap: (event) => switch (event) {
@@ -272,6 +277,14 @@ class _SchedulePageState extends State<SchedulePage>
         onEventDragged: (event, fixture) async {
           if (event is! Meeting) return;
           final messenger = ScaffoldMessenger.of(context);
+          if (fixture.start.isBefore(event.product.start)) {
+            messenger.showSnackBar(
+              SnackBar(content: Text(
+                "Modifica fallita: l'abbonamento inizia il "
+                "${event.product.start.format("dd/MM/yyyy")}.")),
+            );
+            return;
+          }
           final dragged = await setMeeting(event, fixture);
           if (dragged == null) {
             messenger.showSnackBar(

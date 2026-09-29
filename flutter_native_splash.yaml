@@ -1,13 +1,13 @@
 flutter_native_splash:
-  color: "#FFFFFF"
-  image: assets/splash/logo.jpeg
+  color: "#000000"
+  image: assets/splash.png
   color_dark: "#000000"          # opzionale, per il tema scuro
-  image_dark: assets/splash/logo_dark.jpeg
+  image_dark: assets/splash.png
 
   android_12:                    # Android 12+ usa un sistema di splash diverso
-    color: "#FFFFFF"
-    image: assets/splash/logo_android12.jpeg   # icona centrata, ritagliata a cerchio
+    color: "#000000"
+    image: assets/splash.png  # icona centrata, ritagliata a cerchio
     color_dark: "#000000"
-    image_dark: assets/splash/logo_dark.jpeg
+    image_dark: assets/splash.png
 
   web: true

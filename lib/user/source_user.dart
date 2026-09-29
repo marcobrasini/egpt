@@ -1,94 +1,136 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
-import '../services/api/database_service.dart';
-import '../services/egpt_services.dart';
-import '../sources/source_database.dart';
-import '../sources/source_register.dart';
-import '../sources/source_schedule.dart';
-import '../models/meeting.dart';
-import '../models/member.dart';
-import '../models/product.dart';
-import '../models/presence.dart';
-import '../types.dart';
+import 'package:egpt/sources/sources.dart';
+import 'package:egpt/models/models.dart';
 
 
-class UserSource extends ChangeNotifier {
-  UserSource({required this.services});
+class UserSource extends ServiceSource {
+  UserSource({required super.services});
 
-  final EGPTServices services;
-  final register = RegisterSource();
-  final schedule = ScheduleSource();
-  DatabaseService get db => services.database;
+  late final personal = PersonalSource(this);
 
-  // Stato ─────────────────────────────────────────────────────────────────
-  static const _streams = {'members', 'products', 'meetings', 'presences'};
-  final Set<String> _received = {};
-  final List<StreamSubscription> _subscriptions = [];
+  // Avvio ─────────────────────────────────────────────────────────────────
+  // static const _streams = {'members', 'products', 'meetings', 'presences'};
+  // final Set<String> _received = {};
+  // final List<StreamSubscription> _subscriptions = [];
+
   bool _building = false;
-  bool get loading => _building || !_received.containsAll(_streams);
+  bool get loading => _building;// || !_received.containsAll(_streams);
+
   Object? _error;
   Object? get error => _error;
 
-  // Avvio ─────────────────────────────────────────────────────────────────
+  @override
   Future<void> build() async {
     _building = true;
     _error = null;
     notifyListeners();
     try {
-      await db.buildRegister(register);
-      await db.buildSchedule(schedule);
+      // watch();
     } catch (e) {
       _error = e;
     } finally {
       _building = false;
       notifyListeners();
     }
-    watch();
   }
 
-  void watch() {
-    if (_subscriptions.isNotEmpty || _building) return;
-    _listen<Member>('members', db.watchMembers(register));
-    _listen<Product>('products', db.watchProducts(register));
-    _listen<Meeting>('meetings', db.watchMeetings(schedule));
-    _listen<Presence>('presences', db.watchPresences(schedule));
-  }
+  // void watch() {
+  //   if (_subscriptions.isNotEmpty || _building) return;
+  //   _listen<Member>('members', database.watchMembers(register));
+  //   _listen<Product>('products', database.watchProducts(register));
+  //   _listen<Meeting>('meetings', database.watchMeetings(schedule));
+  //   _listen<Presence>('presences', database.watchPresences(schedule));
+  // }
+  //
+  // void _listen<T extends EGPTItem>(
+  //   String name,
+  //   Stream<DatabaseData<T>> stream,
+  // ) {
+  //   _subscriptions.add(
+  //     stream.listen(
+  //       (data) {
+  //         _received.add(name);
+  //         _error = null;
+  //         _notify();
+  //       },
+  //       onError: (Object e) {
+  //         _error = e;
+  //         _received.add(name);
+  //         _notify();
+  //       },
+  //     ),
+  //   );
+  // }
+  //
+  // // Più stream per la stessa transazione → una sola rebuild
+  // Timer? _pending;
+  // void _notify() {
+  //   _pending ??= Timer(Duration.zero, () {
+  //     _pending = null;
+  //     notifyListeners();
+  //   });
+  // }
+  //
+  // @override
+  // void dispose() {
+  //   _pending?.cancel();
+  //   for (final sub in _subscriptions) {
+  //     sub.cancel();
+  //   }
+  //   super.dispose();
+  // }
 
-  void _listen<T extends EGPTItem>(
-    String name,
-    Stream<DatabaseData<T>> stream,
-  ) {
-    _subscriptions.add(
-      stream.listen(
-        (data) {
-          _received.add(name);
-          _error = null;
-          _notify();
-        },
-        onError: (Object e) {
-          _error = e;
-          _received.add(name);
-          _notify();
-        },
-      ),
-    );
-  }
-
-  // Più stream per la stessa transazione → una sola rebuild
-  Timer? _pending;
-  void _notify() {
-    _pending ??= Timer(Duration.zero, () {
-      _pending = null;
-      notifyListeners();
-    });
+  @override
+  Future<Member> insertMember(Member member) {
+    // TODO: implement insertMember
+    throw UnimplementedError();
   }
 
   @override
-  void dispose() {
-    // _pending?.cancel();
-    // for (final sub in _subscriptions) {
-    //   sub.cancel();
-    // }
-    super.dispose();
+  Future<Member> modifyMember(Member member) {
+    // TODO: implement modifyMember
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Member> removeMember(Member member) {
+    // TODO: implement removeMember
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Product> insertProduct(Product product) {
+    // TODO: implement insertProduct
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Product> modifyProduct(Product product) {
+    // TODO: implement modifyProduct
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Product> removeProduct(Product product) {
+    // TODO: implement removeProduct
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Session?> insertSession(Session session) {
+    // TODO: implement insertSession
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Session?> modifySession(Session session) {
+    // TODO: implement modifySession
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Session?> removeSession(Session session) {
+    // TODO: implement removeSession
+    throw UnimplementedError();
   }
 }

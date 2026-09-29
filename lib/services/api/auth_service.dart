@@ -31,6 +31,8 @@ abstract class AuthService extends ChangeNotifier {
 
   String? get email;
 
+  String? get name;
+
   AuthRole? get role;
 
   bool get privileged;

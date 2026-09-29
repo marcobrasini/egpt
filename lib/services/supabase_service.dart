@@ -93,6 +93,12 @@ class SupabaseService extends ChangeNotifier implements AuthService {
   String? get email => user?.email;
 
   @override
+  String? get name {
+    final meta = user?.userMetadata;
+    return (meta?['full_name'] ?? meta?['name']) as String?;
+  }
+
+  @override
   AuthRole? get role {
     final token = session?.accessToken;
     if (token == null) return null;

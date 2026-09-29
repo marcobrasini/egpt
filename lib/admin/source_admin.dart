@@ -10,7 +10,6 @@ class AdminSource extends ServiceSource {
   AdminSource({required super.services});
 
   late final personal = PersonalSource(this);
-  String? get email => services.auth.email;
 
   // Build ─────────────────────────────────────────────────────────────────
   bool _building = false;
@@ -88,8 +87,8 @@ class AdminSource extends ServiceSource {
     try {
       final id = m.id ?? const Uuid().v4();
       final meeting = Meeting.make(id: id, data: m.get());
-      await database.createMeeting(meeting);
       schedule.insertMeeting(meeting);
+      await database.createMeeting(meeting);
       return meeting;
     } on RegisterException catch (_) {
       await build();
@@ -101,8 +100,8 @@ class AdminSource extends ServiceSource {
 
   Future<Meeting?> modifyMeeting(Meeting m) async {
     try {
-      await database.updateMeeting(m);
       schedule.modifyMeeting(m);
+      await database.updateMeeting(m);
       return m;
     } on MissingMeetingException catch (_) {
       schedule.removeMeeting(m);
@@ -116,8 +115,8 @@ class AdminSource extends ServiceSource {
 
   Future<Meeting?> removeMeeting(Meeting m) async {
     try {
-      await database.deleteMeeting(m);
       schedule.removeMeeting(m);
+      await database.deleteMeeting(m);
       return m;
     } on MissingMeetingException catch (_) {
       schedule.removeMeeting(m);

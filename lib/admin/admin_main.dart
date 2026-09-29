@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:egpt/style.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:egpt/sources/sources.dart';
 import 'package:egpt/services/services.dart';
+import 'package:egpt/style.dart';
 import 'admin_schedule.dart';
 import 'admin_register.dart';
 import 'admin_presence.dart';
@@ -37,7 +37,7 @@ class _AdminPageState extends State<AdminPage> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Image.asset('assets/logo/logo.png', height: 72),
+                    child: Image.asset('assets/logo.png', height: 72),
                   ),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -100,10 +100,10 @@ class _AdminPageState extends State<AdminPage> {
           drawer: mainDrawer(context),
           appBar: AppBar(
             centerTitle: true,
-            title: Text("EGPT", 
+            title: Text("STUDIO EG",
               style: TextStyle(
                 fontSize: 28,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
               ),
             ),
             actions: const [ScheduleActions()],

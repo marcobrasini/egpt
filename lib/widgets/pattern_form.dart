@@ -50,6 +50,20 @@ class PatternFormState extends State<PatternForm> {
     return null;
   }
 
+  Pattern? get pattern {
+    final patternForm = _patternForm.currentState;
+    if (patternForm?.saveAndValidate() ?? false) {
+      final data = DataMap.from(patternForm!.value);
+      return (_repeat)
+            ? Pattern(
+              type: PatternType.weekly,
+              until: (data["until"] as DateTime)
+            )
+            : null;
+    }
+    return null;
+  }
+
   Widget untilForm() => FormBuilderDateTimePicker(
     key: ValueKey(widget.pattern?.until ?? widget.product?.stop),
     name: "until",

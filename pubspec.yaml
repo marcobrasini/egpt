@@ -65,6 +65,7 @@ dependencies:
   equatable: ^2.1.0
   sqlite_async: ^0.14.5
   timezone: ^0.11.1
+  material_symbols_icons: ^4.2960.0
 
 dev_dependencies:
   flutter_test:
@@ -94,7 +95,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
-    - assets/logo/logo.png
+    - assets/logo.png
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

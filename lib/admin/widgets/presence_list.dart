@@ -7,7 +7,8 @@ import 'package:egpt/sources/sources.dart';
 class SessionList extends StatelessWidget {
   const SessionList({required this.sessions, super.key});
   final List<Session> sessions;
-  List<Presence> get presences => [for (final s in sessions) ?(s.presence)];
+  List<Presence> get presences => [for (final s in sessions) ?(s.presence)]
+    ..sort((a, b) => a.start.compareTo(b.start));
 
   @override
   Widget build(BuildContext context) {

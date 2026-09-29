@@ -128,17 +128,19 @@ class _PresencePageState extends State<PresencePage>
                   )
                 ],
               ),
-              eventBuilder: (context, meeting) => PresenceTile(
-                meeting: meeting,
-                presence: _presences[_key(meeting)],
-                onChanged: (value) => _presences[_key(meeting)] = value,
-              ),
+              eventBuilder: (context, meeting) => (meeting.isAllDay)
+                  ? SizedBox.shrink()
+                  : PresenceTile(
+                    meeting: meeting,
+                    presence: _presences[_key(meeting)],
+                    onChanged: (value) => _presences[_key(meeting)] = value,
+                  ),
               eventConfig: EventConfig(
                 padding: 4.0,
                 textStyle: TextStyle(color: Colors.white),
               ),
               leftSwipeBuilder: (context) => ColoredBox(
-                color: scheme.tertiaryContainer,
+                color: scheme.onErrorContainer,
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Padding(
@@ -150,13 +152,13 @@ class _PresencePageState extends State<PresencePage>
                           padding: const EdgeInsets.all(4.0),
                           child: Text("Cancella",
                             style: TextStyle(
-                              color: scheme.onTertiaryContainer,
+                              color: scheme.errorContainer,
                               fontSize: 16.0,
                             ),
                           ),
                         ),
                         Icon(Icons.delete,
-                          color: scheme.onTertiaryContainer,
+                          color: scheme.errorContainer,
                           size: 24,
                         ),
                       ],
@@ -165,7 +167,7 @@ class _PresencePageState extends State<PresencePage>
                 ),
               ),
               rightSwipeBuilder: (context) => ColoredBox(
-                color: scheme.secondaryContainer,
+                color: scheme.onSecondaryContainer,
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Padding(
@@ -174,14 +176,14 @@ class _PresencePageState extends State<PresencePage>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.archive,
-                          color: scheme.onSecondaryContainer,
+                          color: scheme.secondaryContainer,
                           size: 24.0,
                         ),
                         Padding(
                           padding: const EdgeInsets.all(4.0),
                           child: Text("Archivia",
                             style: TextStyle(
-                              color: scheme.onSecondaryContainer,
+                              color: scheme.secondaryContainer,
                               fontSize: 16,
                             ),
                           ),

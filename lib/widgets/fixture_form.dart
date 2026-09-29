@@ -15,6 +15,8 @@ class FixtureForm extends StatefulWidget {
     super.key
   });
 
+  bool get isAllDay => fixture?.isAllDay ?? false;
+
   @override
   State<FixtureForm> createState() => FixtureFormState();
 }
@@ -27,10 +29,29 @@ class FixtureFormState extends State<FixtureForm> {
     final form = _fixtureForm.currentState;
     if (form?.saveAndValidate() ?? false) {
       final data = DataMap.from(form!.value);
-      return {
-        "start": (data["date"] as Date) & (data["from"] as Time),
-        "stop": (data["date"] as Date) & (data["to"] as Time),
-      };
+      return (widget.isAllDay)
+          ? {
+            "start": (data["date"] as Date),
+            "stop": (data["date"] as Date) + 1,
+          }
+          : {
+            "start": (data["date"] as Date) & (data["from"] as Time),
+            "stop": (data["date"] as Date) & (data["to"] as Time),
+          };
+    }
+    return null;
+  }
+
+  Fixture? get fixture {
+    final form = _fixtureForm.currentState;
+    if (form?.saveAndValidate() ?? false) {
+      final data = DataMap.from(form!.value);
+      return (widget.isAllDay)
+          ? Fixture(start: data["date"] as Date)
+          : Fixture(
+            start: (data["date"] as Date) & (data["from"] as Time),
+            stop: (data["date"] as Date) & (data["to"] as Time),
+          );
     }
     return null;
   }
@@ -120,7 +141,7 @@ class FixtureFormState extends State<FixtureForm> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           dateForm(),
-          Row(
+          if (!widget.isAllDay) Row(
             children: [
               Expanded(child: fromForm()),
               Expanded(child: toForm()),

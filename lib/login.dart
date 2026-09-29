@@ -12,8 +12,8 @@ class LoginPage extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final services = context.read<EGPTServices>();
     return FlutterLogin(
-      logo: const AssetImage('assets/logo/logo.png'),
-      title: 'EGPT',
+      logo: const AssetImage('assets/logo.png'),
+      title: 'EMANUELE GUERRA PT',
       userType: LoginUserType.email,
       onLogin: (data) => services.auth.signIn(
         email: data.name.trim(),
@@ -53,7 +53,10 @@ class LoginPage extends StatelessWidget {
         errorColor: scheme.error,
         titleStyle: TextStyle(
           color: scheme.onPrimaryContainer,
+          fontStyle: FontStyle.italic,
           fontWeight: FontWeight.w600,
+          fontFamily: 'Avenir Next',
+          fontSize: 18,
           letterSpacing: 4,
         ),
       ),
