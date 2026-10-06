@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:egpt/widgets/separator.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:calendar/calendar.dart';
 import 'package:egpt/sources/sources.dart';
 import 'package:egpt/services/services.dart';
 import 'package:egpt/style.dart';
@@ -56,6 +58,25 @@ class _AdminPageState extends State<AdminPage> {
                 ],
               ),
             ),
+            ListenableBuilder(
+              listenable: admin.schedule,
+              builder: (context, _) {
+                final schedule = admin.schedule;
+                final device = admin.services.device.sources.sources;
+                return Column(
+                  children: [
+                    const Separator(text: "Calendario"),
+                    _sourceTile('Appuntamenti', schedule.meetingSource),
+                    _sourceTile('Sessioni', schedule.presenceSource),
+                    if (device.isNotEmpty) ...[
+                      const Separator(text: "Privato"),
+                      for (final source in device) _deviceTile(source),
+                    ],
+                    const Divider(),
+                  ],
+                );
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.brightness_6_outlined),
               title: (scheme.brightness == Brightness.light)
@@ -106,7 +127,6 @@ class _AdminPageState extends State<AdminPage> {
                 fontWeight: FontWeight.w400,
               ),
             ),
-            actions: const [ScheduleActions()],
           ),
           body: Builder(
             builder: (context) {
@@ -135,4 +155,29 @@ class _AdminPageState extends State<AdminPage> {
       ),
     );
   }
+}
+
+Widget _sourceTile(String title, CalendarSource source, {String? subtitle}) =>
+    SwitchListTile.adaptive(
+      title: Text(title,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
+      subtitle: (subtitle != null)
+          ? Text(subtitle,
+            style: TextStyle(fontSize: 12),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          )
+          : null,
+      value: source.visible,
+      onChanged: (value) => source.visible = value,
+    );
+
+Widget _deviceTile(CalendarSource source) {
+  final label = source.label ?? '';
+  final split = label.indexOf(':');
+  return (split < 0)
+      ? _sourceTile(label, source)
+      : _sourceTile(label.substring(split + 1), source);
 }

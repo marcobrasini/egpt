@@ -30,7 +30,7 @@ extension WarningColors on ColorScheme {
 
 
 class ThemeController extends ChangeNotifier {
-  ThemeMode _mode = ThemeMode.dark;
+  ThemeMode _mode = ThemeMode.system;
   ThemeMode get mode => _mode;
 
   void setMode(ThemeMode mode) {

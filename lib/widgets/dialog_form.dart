@@ -69,6 +69,8 @@ Future<T?> showFormDialog<T>({
     title: Text(title, textAlign: TextAlign.center),
     content: SingleChildScrollView(child: content),
     actions: actions,
-    actionsAlignment: MainAxisAlignment.spaceBetween,
+    actionsAlignment: ((actions?.length ?? 0) > 1)
+        ? MainAxisAlignment.spaceBetween
+        : MainAxisAlignment.center,
   ),
 );

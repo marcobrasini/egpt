@@ -60,7 +60,6 @@ class MeetingFormState extends State<MeetingForm> {
     if ((meetingForm?.saveAndValidate() ?? false) && fixtureForm != null) {
       final fixture = fixtureForm.fixture;
       final pattern = patternForm?.data;
-      print("meetingForm $fixture");
       if (fixture != null) {
         final error = validateFixture(fixture);
         if (error == null) {

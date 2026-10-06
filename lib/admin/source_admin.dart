@@ -27,14 +27,13 @@ class AdminSource extends ServiceSource {
       await database.buildRegister(register);
       await database.buildSchedule(schedule);
       if (calendar case final calendar?) {
-        try {
-          schedule.attach(await calendar.build());
-        } catch (error) {
-          debugPrint("calendar error: $error");
+        for (final source in (await calendar.build())) {
+          schedule.attach(source);
         }
       }
-    } catch (error) {
+    } catch (error, stack) {
       _error = error;
+      debugPrint("AdminSource.build: $error\n$stack");
     } finally {
       _building = false;
       notifyListeners();

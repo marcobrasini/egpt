@@ -83,7 +83,7 @@ class GoogleCalendar implements CalendarService {
   }
 
   @override
-  Future<CalendarSource> build([String calendarId = "primary"]) async {
+  Future<List<CalendarSource>> build([String calendarId = "primary"]) async {
     source.clear();
     final calendar = await api();
     final today = Date.now();
@@ -99,7 +99,7 @@ class GoogleCalendar implements CalendarService {
       }
       page = response.nextPageToken;
     } while (page != null);
-    return source..build();
+    return [source..build()];
   }
 }
 

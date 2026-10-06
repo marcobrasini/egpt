@@ -1,3 +1,4 @@
+import "package:egpt/services/device_service.dart";
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import "api/auth_service.dart";
 import "api/database_service.dart";
@@ -15,11 +16,15 @@ class EGPTServices {
 
   final AuthService auth;
   final DatabaseService database;
+  final DeviceCalendar device = DeviceCalendar(
+    excluded: {"${dotenv.get('EGPT_ROOT')}:${dotenv.get('EGPT_CALENDAR')}"}
+  );
   final List<ProviderService> providers;
 
   bool get root => auth.email == dotenv.get('EGPT_ROOT');
 
   CalendarService? get calendar {
+    return device;
     if (root) return null;
     final linked = auth.identities;
     for (final provider in providers) {

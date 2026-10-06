@@ -7,7 +7,5 @@ abstract class CalendarService {
 
   Future<void> authorize();
 
-  // Future<List<Event>> listEvents();
-
-  Future<CalendarSource> build();
+  Future<List<CalendarSource>> build();
 }

@@ -79,6 +79,10 @@ class EGPTApp extends StatelessWidget {
           useMaterial3: true,
         ),
         themeMode: context.watch<ThemeController>().mode,
+        builder: (context, child) {
+          Intl.defaultLocale = Localizations.localeOf(context).toString();
+          return child!;
+        },
         home: const AuthGate(),
       ),
     );

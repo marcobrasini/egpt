@@ -6,3 +6,4 @@ export 'meeting_form.dart';
 export 'fixture_form.dart';
 export 'pattern_form.dart';
 export 'option_form.dart';
+export 'event_form.dart';

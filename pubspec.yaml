@@ -66,6 +66,7 @@ dependencies:
   sqlite_async: ^0.14.5
   timezone: ^0.11.1
   material_symbols_icons: ^4.2960.0
+  device_calendar_plus: ^0.8.1
 
 dev_dependencies:
   flutter_test:

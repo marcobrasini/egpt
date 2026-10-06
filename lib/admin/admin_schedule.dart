@@ -1,9 +1,9 @@
-import 'package:egpt/style.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:calendar/calendar.dart';
 import 'package:egpt/models/models.dart';
 import 'package:egpt/widgets/forms.dart';
+import 'package:egpt/style.dart';
 import 'source_admin.dart';
 
 
@@ -82,6 +82,16 @@ class _SchedulePageState extends State<SchedulePage>
           }
         ),
       ],
+    );
+  }
+
+  Future<void> openEvent(BuildContext context, Event event) async {
+    final eventForm = GlobalKey<EventFormState>();
+    return await showFormDialog(
+      context: context,
+      title: "Evento",
+      content: EventForm(event, key: eventForm, enabled: false),
+      actions: [FormAction("Annulla")],
     );
   }
 
@@ -184,10 +194,18 @@ class _SchedulePageState extends State<SchedulePage>
 
   Future<Meeting?> setMeeting(Meeting meeting, Fixture fixture) async {
     final option = (meeting.isInstance)
-        ? await confirm(meeting, "Modifica")
+        ? (fixture.isAllDay)
+            ? MeetingType.exception
+            : await confirm(meeting, "Modifica")
         : MeetingType.occurrence;
     switch (option) {
       case MeetingType.occurrence:
+        if (meeting.isAllDay) {
+          fixture = Fixture(
+            start: fixture.start,
+            stop: fixture.start.add(Duration(hours: 1)),
+          );
+        }
         if (meeting.isException) {
           var recurrence = admin.schedule.meeting(meeting.parentId!);
           if (recurrence.hasInstance(meeting, fixture) ?? false) {
@@ -245,7 +263,7 @@ class _SchedulePageState extends State<SchedulePage>
         timeScheme: TimeScheme(6, 24, round: 15),
         lineConfig: LineConfig(color: scheme.neutral),
         timeConfig: TextConfig(textStyle: TextStyle(fontSize: 14)),
-        dateConfig: TextConfig(padding: 12.0),
+        dateConfig: TextConfig(padding: 8.0),
         headerBuilder: (context, start, stop) => Row(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -272,7 +290,7 @@ class _SchedulePageState extends State<SchedulePage>
         onFrameTap: (datetime) => makeMeeting(context, datetime),
         onEventTap: (event) => switch (event) {
           Meeting m => editMeeting(context, m),
-          _ => {},
+          _ => openEvent(context, event),
         },
         onEventDragged: (event, fixture) async {
           if (event is! Meeting) return;
@@ -303,76 +321,6 @@ class _SchedulePageState extends State<SchedulePage>
           }
         },
       ),
-    );
-  }
-}
-
-
-class ScheduleActions extends StatelessWidget {
-  const ScheduleActions({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final schedule = context.read<AdminSource>().schedule;
-    final tabs = DefaultTabController.of(context);
-    const style = TextStyle(fontWeight: FontWeight.w500);
-    return ListenableBuilder(
-        listenable: Listenable.merge([tabs, ...schedule.sources]),
-        builder: (context, _) {
-          if (tabs.index != 0) return const SizedBox.shrink();
-          return MenuAnchor(
-            builder: (context, controller, _) => IconButton(
-              icon: const Icon(Icons.more_vert),
-              onPressed: () =>
-              controller.isOpen
-                  ? controller.close()
-                  : controller.open(),
-            ),
-            menuChildren: [
-              const Padding(
-                padding: EdgeInsets.all(12.0),
-                child: Text('Mostra calendario:', style: style),
-              ),
-              CheckboxMenuButton(
-                value: schedule.meetingSource.visible,
-                onChanged: (value) {
-                  if (value != null) schedule.meetingSource.visible = value;
-                },
-                child: const Text('Appuntamenti', style: style),
-              ),
-              CheckboxMenuButton(
-                value: schedule.presenceSource.visible,
-                onChanged: (value) {
-                  if (value != null) schedule.presenceSource.visible = value;
-                },
-                child: const Text('Sessioni', style: style),
-              ),
-              if (schedule.sources.length > 2) Column(
-                children: [
-                  const Row(
-                    children: [
-                      Expanded(child: Divider()),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text("Google"),
-                      ),
-                      Expanded(child: Divider()),
-                    ],
-                  ),
-                  for (final source in schedule.sources)
-                    if (source != schedule.meetingSource && source != schedule.presenceSource)
-                    CheckboxMenuButton(
-                      value: source.visible,
-                      onChanged: (value) {
-                        if (value != null) source.visible = value;
-                      },
-                      child: Text(source.label!, style: style),
-                    ),
-                ],
-              ),
-            ],
-          );
-        }
     );
   }
 }
