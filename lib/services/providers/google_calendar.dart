@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:googleapis/calendar/v3.dart' as gcal;
-import 'package:calendar/calendar.dart';
+import 'package:flutter_calendar_agenda/flutter_calendar_agenda.dart';
 import '../api/provider_service.dart';
 import '../api/calendar_service.dart';
 import 'google_provider.dart';

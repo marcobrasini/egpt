@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:device_calendar_plus/device_calendar_plus.dart' as dcp;
-import 'package:calendar/calendar.dart';
+import 'package:flutter_calendar_agenda/flutter_calendar_agenda.dart';
 import 'api/calendar_service.dart';
 
 

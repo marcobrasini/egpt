@@ -1,5 +1,5 @@
-import 'package:calendar/calendar.dart';
 import 'package:sqlite3/sqlite3.dart' as sql;
+import 'package:flutter_calendar_agenda/flutter_calendar_agenda.dart';
 import 'package:egpt/models/models.dart';
 import 'package:egpt/style.dart';
 import 'package:egpt/types.dart';

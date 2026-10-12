@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:calendar/calendar.dart';
+import 'package:flutter_calendar_agenda/flutter_calendar_agenda.dart';
 import 'package:egpt/models/models.dart';
 import 'widgets/presence_tile.dart';
 import 'admin_statistic.dart';

@@ -1,4 +1,4 @@
-import 'package:calendar/calendar.dart';
+import 'package:flutter_calendar_agenda/flutter_calendar_agenda.dart';
 
 
 extension MeetingFixture on Fixture {

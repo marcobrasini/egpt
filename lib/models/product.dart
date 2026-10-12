@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:equatable/equatable.dart';
-import 'package:calendar/calendar.dart';
+import 'package:flutter_calendar_agenda/flutter_calendar_agenda.dart';
 import 'package:egpt/sources/sources.dart';
 import 'package:egpt/models/models.dart';
 import 'package:egpt/types.dart';

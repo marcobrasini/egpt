@@ -1,12 +1,12 @@
-import 'package:calendar/calendar.dart';
-import 'package:egpt/style.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_calendar_agenda/flutter_calendar_agenda.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/providers/google_provider.dart';
 import 'services/services.dart';
+import 'style.dart';
 import 'auth.dart';
 
 
